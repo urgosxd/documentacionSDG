@@ -1,0 +1,82 @@
+# Event Contract — Storage
+# Define los eventos de almacenamiento
+
+eventContract: StorageEventContract
+version: 1.0.0
+description: Contrato de eventos para almacenamiento
+
+publishedEvents:
+  - name: ArchivoStored
+    description: Evento disparado cuando un archivo se almacena exitosamente
+    trigger: AlmacenarArchivo command completado
+    schema:
+      type: object
+      properties:
+        fid:
+          type: string
+        expedienteId:
+          type: string
+          format: uuid
+        hash:
+          type: string
+        tamaño:
+          type: integer
+        formato:
+          type: string
+        storagePath:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+    consumers:
+      - expediente-management (para actualizar metadata del archivo)
+
+  - name: ArchivoDeleted
+    description: Evento disparado cuando un archivo se elimina
+    trigger: EliminarArchivo command completado
+    schema:
+      type: object
+      properties:
+        fid:
+          type: string
+        expedienteId:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+    consumers:
+      - expediente-management (para actualizar estado)
+
+consumedEvents:
+  - name: ArchivoParaAlmacenar
+    description: Evento consumido para almacenar un archivo
+    source: expediente-management
+    action: Almacenar archivo físico en SeaweedFS
+    schema:
+      type: object
+      properties:
+        expedienteId:
+          type: string
+          format: uuid
+        archivoBinario:
+          type: string
+          format: base64
+        nombreOriginal:
+          type: string
+        formato:
+          type: string
+
+integrationPatterns:
+  - pattern: Store and reference
+    description: Almacena archivo físico, retorna referencia
+    example: AlmacenarArchivo → fid → guardar en expediente
+
+errorHandling:
+  - scenario: Storage write fails
+    strategy: Retry with backoff (max 3)
+    fallback: Return error to expediente-management
+
+  - scenario: File not found
+    strategy: Return 404
+    fallback: Log error, alert if critical

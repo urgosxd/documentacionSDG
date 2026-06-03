@@ -1,0 +1,283 @@
+# Event Contract — Quarkus App (Service Level)
+# Define los eventos publicados/consumidos por el servicio quarkus-app
+
+eventContract: QuarkusAppEventContract
+version: 1.0.0
+description: Contrato de eventos a nivel de servicio para quarkus-app
+
+publishedEvents:
+  # Eventos del subdominio Expediente Management
+  - name: ExpedienteCreated
+    description: Evento disparado cuando se crea un nuevo expediente
+    source: subdomain-expediente-management
+    trigger: CrearExpediente command ejecutado
+    schema:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        proyectoId:
+          type: string
+          format: uuid
+        tipo:
+          type: string
+          enum: [expediente-tecnico, expediente-ejecucion, expediente-adicionales, expediente-liquidacion]
+        estado:
+          type: string
+          enum: [borrador]
+        oficinaId:
+          type: string
+          format: uuid
+        responsableId:
+          type: string
+          format: uuid
+        asunto:
+          type: string
+        nomenclatura:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    consumers:
+      - inngest/workflow
+      - payloadcms/workspace
+
+  - name: ArchivoAdjuntado
+    description: Evento disparado cuando se adjunta un archivo a un expediente
+    source: subdomain-expediente-management
+    trigger: AdjuntarArchivo command ejecutado
+    schema:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        expedienteId:
+          type: string
+          format: uuid
+        nombreOriginal:
+          type: string
+        hash:
+          type: string
+        tamaño:
+          type: integer
+        formato:
+          type: string
+          enum: [PDF, DOCX]
+        fechaSubida:
+          type: string
+          format: date-time
+        usuarioSubidorId:
+          type: string
+          format: uuid
+        storageRef:
+          type: string
+    consumers:
+      - storage
+      - payloadcms/workspace
+
+  - name: ExpedienteStateChanged
+    description: Evento disparado cuando cambia el estado de un expediente
+    source: subdomain-expediente-management
+    trigger: CambiarEstado command ejecutado
+    schema:
+      type: object
+      properties:
+        expedienteId:
+          type: string
+          format: uuid
+        estadoAnterior:
+          type: string
+        estadoNuevo:
+          type: string
+        usuarioId:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+        justificacion:
+          type: string
+          nullable: true
+    consumers:
+      - inngest/workflow
+      - payloadcms/workspace
+      - notification-service
+
+  # Eventos del subdominio Users
+  - name: UsuarioCreated
+    description: Evento disparado cuando se crea un nuevo usuario
+    source: subdomain-users
+    trigger: CrearUsuario command ejecutado
+    schema:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        nombreCompleto:
+          type: string
+        username:
+          type: string
+        rol:
+          type: string
+          enum: [super-admin, jefe-oficina, inspector, residente, tecnico]
+        oficinaId:
+          type: string
+          format: uuid
+        activo:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+    consumers:
+      - keycloak
+      - payloadcms/workspace
+
+  - name: UsuarioDesactivado
+    description: Evento disparado cuando se desactiva un usuario
+    source: subdomain-users
+    trigger: DesactivarUsuario command ejecutado
+    schema:
+      type: object
+      properties:
+        usuarioId:
+          type: string
+          format: uuid
+        username:
+          type: string
+        justificacion:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+    consumers:
+      - keycloak
+      - inngest/workflow
+
+  - name: RolAsignado
+    description: Evento disparado cuando se asigna un rol a un usuario
+    source: subdomain-users
+    trigger: AsignarRol command ejecutado
+    schema:
+      type: object
+      properties:
+        usuarioId:
+          type: string
+          format: uuid
+        rolAnterior:
+          type: string
+        rolNuevo:
+          type: string
+        oficinaId:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+    consumers:
+      - identity-wrapper
+      - payloadcms/workspace
+
+  # Eventos del subdominio Identity Wrapper
+  - name: SessionCreated
+    description: Evento disparado cuando se crea una nueva sesión
+    source: subdomain-identity-wrapper
+    trigger: Usuario inicia sesión exitosamente
+    schema:
+      type: object
+      properties:
+        sessionId:
+          type: string
+          format: uuid
+        usuarioId:
+          type: string
+          format: uuid
+        token:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+    consumers:
+      - payloadcms/workspace
+
+  - name: SessionExpired
+    description: Evento disparado cuando una sesión expira por inactividad
+    source: subdomain-identity-wrapper
+    trigger: Timeout de 5 minutos sin actividad
+    schema:
+      type: object
+      properties:
+        sessionId:
+          type: string
+          format: uuid
+        usuarioId:
+          type: string
+          format: uuid
+        lastActivity:
+          type: string
+          format: date-time
+        timestamp:
+          type: string
+          format: date-time
+    consumers:
+      - payloadcms/workspace
+
+consumedEvents:
+  - name: WorkflowCompleted
+    description: Evento consumido cuando un workflow de expediente termina
+    source: inngest/workflow
+    action: Actualizar estado del expediente a APROBADO
+    schema:
+      type: object
+      properties:
+        expedienteId:
+          type: string
+          format: uuid
+        workflowId:
+          type: string
+          format: uuid
+        resultado:
+          type: string
+          enum: [aprobado, rechazado]
+        timestamp:
+          type: string
+          format: date-time
+
+  - name: KeycloakUserSynced
+    description: Evento consumido cuando Keycloak sincroniza un usuario
+    source: keycloak
+    action: Actualizar estado de sincronización del usuario
+    schema:
+      type: object
+      properties:
+        usuarioId:
+          type: string
+          format: uuid
+        keycloakId:
+          type: string
+          format: uuid
+        synced:
+          type: boolean
+        timestamp:
+          type: string
+          format: date-time
+
+integrationPatterns:
+  - pattern: Event-driven architecture
+    description: Todos los cambios de estado publican eventos
+    example: ExpedienteCreated → workflow inicia proceso
+
+  - pattern: Saga coordination
+    description: Coordinación de múltiples subdominios vía eventos
+    example: CrearUsuario → keycloak sync → identity-wrapper → workspace update
+
+errorHandling:
+  - scenario: Event publishing fails
+    strategy: Retry with exponential backoff (max 3 attempts)
+    fallback: Dead-letter queue + alert admin
+
+  - scenario: Event consumer unreachable
+    strategy: Retry delivery
+    fallback: Dead-letter queue

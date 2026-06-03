@@ -1,0 +1,241 @@
+# Aggregate Spec — Users
+# Define la estructura y reglas del aggregate Usuario
+
+aggregate: Usuario
+version: 1.0.0
+description: Aggregate root para gestión de usuarios y estructura organizacional
+rootEntity: Usuario
+
+entities:
+  - name: Usuario
+    type: aggregate-root
+    description: Usuario del sistema con rol y oficina asignada
+    identity:
+      field: id
+      type: UUID
+      generated: true
+    fields:
+      - name: id
+        type: UUID
+        required: true
+      - name: nombreCompleto
+        type: string
+        required: true
+        maxLength: 200
+      - name: username
+        type: string
+        required: true
+        unique: true
+        maxLength: 50
+      - name: email
+        type: string
+        required: false
+        format: email
+      - name: rol
+        type: string
+        required: true
+        enum:
+          - super-admin
+          - jefe-oficina
+          - inspector
+          - residente
+          - tecnico
+      - name: oficinaId
+        type: UUID
+        required: true
+        description: Oficina asignada (excepto super-admin)
+      - name: activo
+        type: boolean
+        required: true
+        default: true
+      - name: createdAt
+        type: datetime
+        required: true
+        generated: true
+      - name: updatedAt
+        type: datetime
+        required: true
+
+  - name: Oficina
+    type: entity
+    description: Unidad organizacional del sistema
+    identity:
+      field: id
+      type: UUID
+      generated: true
+    fields:
+      - name: id
+        type: UUID
+        required: true
+      - name: nombre
+        type: string
+        required: true
+        maxLength: 100
+      - name: codigo
+        type: string
+        required: true
+        unique: true
+        enum:
+          - UF
+          - OEP
+          - LQ
+          - OAD
+          - RES
+          - INS
+      - name: grupo
+        type: integer
+        required: true
+        enum: [1, 2, 3]
+        description: Grupo de asignación de roles
+      - name: jefeOficinaId
+        type: UUID
+        required: true
+        description: Usuario con rol Jefe de Oficina
+
+  - name: Cargo
+    type: entity
+    description: Posición jerárquica dentro de una oficina
+    identity:
+      field: id
+      type: UUID
+      generated: true
+    fields:
+      - name: id
+        type: UUID
+        required: true
+      - name: nombre
+        type: string
+        required: true
+      - name: nivel
+        type: integer
+        required: true
+      - name: permisosPorDefecto
+        type: array
+        required: true
+
+  - name: Responsable
+    type: entity
+    description: Asignación de usuario a oficina con cargo
+    identity:
+      field: id
+      type: UUID
+      generated: true
+    fields:
+      - name: id
+        type: UUID
+        required: true
+      - name: usuarioId
+        type: UUID
+        required: true
+      - name: oficinaId
+        type: UUID
+        required: true
+      - name: cargoId
+        type: UUID
+        required: true
+      - name: fechaAsignacion
+        type: datetime
+        required: true
+      - name: fechaFin
+        type: datetime
+        required: false
+
+relationships:
+  - type: one-to-many
+    from: Oficina
+    to: Usuario
+    description: Una oficina tiene múltiples usuarios
+    cascadeDelete: false
+
+  - type: many-to-one
+    from: Usuario
+    to: Oficina
+    description: Un usuario pertenece a una oficina
+    cascadeDelete: false
+
+  - type: one-to-many
+    from: Usuario
+    to: Responsable
+    description: Un usuario tiene múltiples asignaciones históricas
+    cascadeDelete: false
+
+invariants:
+  - id: INV-USR-01
+    description: Usuario único
+    rule: El username debe ser único en el sistema
+
+  - id: INV-USR-02
+    description: Oficina obligatoria
+    rule: Todo usuario debe tener oficina asignada (excepto super-admin)
+
+  - id: INV-USR-03
+    description: Jefe por oficina
+    rule: Cada oficina debe tener al menos un usuario con rol jefe-oficina
+
+  - id: INV-USR-04
+    description: Un rol por usuario
+    rule: Cada usuario tiene exactamente un rol
+
+  - id: INV-USR-05
+    description: Baja lógica
+    rule: La desactivación es isActivo=false, no se eliminan registros
+
+commands:
+  - name: CrearUsuario
+    description: Crea un nuevo usuario
+    fields:
+      - nombreCompleto
+      - username
+      - email (optional)
+      - rol
+      - oficinaId
+
+  - name: EditarUsuario
+    description: Edita datos de un usuario
+    fields:
+      - usuarioId
+      - nombreCompleto
+      - email
+
+  - name: DesactivarUsuario
+    description: Desactiva un usuario (baja lógica)
+    fields:
+      - usuarioId
+      - justificacion
+
+  - name: AsignarRol
+    description: Asigna un rol a un usuario
+    fields:
+      - usuarioId
+      - rol
+      - oficinaId
+
+  - name: RestablecerContraseña
+    description: Envía email para restablecer contraseña
+    fields:
+      - usuarioId
+
+queries:
+  - name: ObtenerUsuario
+    description: Obtiene un usuario por ID
+    params:
+      - id: UUID
+
+  - name: ListarUsuarios
+    description: Lista usuarios con filtros y paginación
+    params:
+      - oficinaId: UUID (optional)
+      - rol: string (optional)
+      - activo: boolean (optional)
+      - page: integer
+      - limit: integer
+
+  - name: BuscarUsuarioPorUsername
+    description: Busca usuario por username
+    params:
+      - username: string
+
+  - name: ObtenerUsuariosPorOficina
+    description: Obtiene todos los usuarios de una oficina
+    params:
+      - oficinaId: UUID

@@ -1,0 +1,237 @@
+# Event Contract — PayloadCMS (Service Level)
+# Define los eventos publicados/consumidos por el servicio payloadcms
+
+eventContract: PayloadCMSEventContract
+version: 1.0.0
+description: Contrato de eventos a nivel de servicio para payloadcms (BFF/Facade)
+
+publishedEvents:
+  # Eventos del subdominio Document Workspace
+  - name: WorkspaceViewLoaded
+    description: Evento disparado cuando se carga la vista del workspace
+    source: subdomain-document-workspace
+    trigger: Usuario autenticado carga workspace
+    schema:
+      type: object
+      properties:
+        viewId:
+          type: string
+          format: uuid
+        usuarioId:
+          type: string
+          format: uuid
+        rol:
+          type: string
+        oficinaId:
+          type: string
+          format: uuid
+        estadoUI:
+          type: string
+          enum: [authenticated, expediente-created, expediente-listed, expediente-detail]
+        timestamp:
+          type: string
+          format: date-time
+    consumers:
+      - analytics-service (para tracking de uso)
+
+  - name: ExpedienteUICreated
+    description: Evento disparado cuando usuario inicia creación de expediente en UI
+    source: subdomain-document-workspace
+    trigger: Usuario completa formulario de creación
+    schema:
+      type: object
+      properties:
+        viewId:
+          type: string
+          format: uuid
+        usuarioId:
+          type: string
+          format: uuid
+        tipo:
+          type: string
+        asunto:
+          type: string
+        proyectoId:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+    consumers:
+      - quarkus-app/expediente-management (para crear expediente real)
+
+  - name: ArchivoUIUploaded
+    description: Evento disparado cuando usuario sube archivo mediante UI
+    source: subdomain-document-workspace
+    trigger: Drag & drop completado
+    schema:
+      type: object
+      properties:
+        expedienteId:
+          type: string
+          format: uuid
+        nombreOriginal:
+          type: string
+        tamaño:
+          type: integer
+        formato:
+          type: string
+          enum: [PDF, DOCX]
+        usuarioId:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+    consumers:
+      - quarkus-app/expediente-management (para procesar archivo)
+
+  - name: SessionTimeoutWarning
+    description: Evento disparado cuando sesión está cerca de timeout
+    source: subdomain-document-workspace
+    trigger: 1 minuto antes del cierre por inactividad
+    schema:
+      type: object
+      properties:
+        sessionId:
+          type: string
+          format: uuid
+        usuarioId:
+          type: string
+          format: uuid
+        timeRemaining:
+          type: integer
+          description: Seconds remaining
+        timestamp:
+          type: string
+          format: date-time
+    consumers:
+      - notification-service (para mostrar warning al usuario)
+
+consumedEvents:
+  - name: ExpedienteCreated
+    description: Evento consumido para actualizar UI cuando se crea expediente
+    source: quarkus-app/expediente-management
+    action: Actualizar bandeja de expedientes en UI
+    schema:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        nomenclatura:
+          type: string
+        estado:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+  - name: ExpedienteStateChanged
+    description: Evento consumido para actualizar estado en UI
+    source: quarkus-app/expediente-management
+    action: Actualizar estado visual del expediente
+    schema:
+      type: object
+      properties:
+        expedienteId:
+          type: string
+          format: uuid
+        estadoAnterior:
+          type: string
+        estadoNuevo:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+  - name: ArchivoAdjuntado
+    description: Evento consumido para actualizar lista de archivos en UI
+    source: quarkus-app/expediente-management
+    action: Actualizar lista de archivos adjuntos
+    schema:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        expedienteId:
+          type: string
+          format: uuid
+        nombreOriginal:
+          type: string
+        fechaSubida:
+          type: string
+          format: date-time
+
+  - name: SessionCreated
+    description: Evento consumido para actualizar estado de autenticación en UI
+    source: quarkus-app/identity-wrapper
+    action: Actualizar UI a estado authenticated
+    schema:
+      type: object
+      properties:
+        sessionId:
+          type: string
+          format: uuid
+        usuarioId:
+          type: string
+          format: uuid
+        rol:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+
+  - name: SessionExpired
+    description: Evento consumido para redirigir a login
+    source: quarkus-app/identity-wrapper
+    action: Redirigir usuario a login
+    schema:
+      type: object
+      properties:
+        sessionId:
+          type: string
+          format: uuid
+        usuarioId:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+
+  - name: UsuarioCreated
+    description: Evento consumido para actualizar listas de usuarios en UI
+    source: quarkus-app/users
+    action: Actualizar lista de usuarios en admin panel
+    schema:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        rol:
+          type: string
+        oficinaId:
+          type: string
+          format: uuid
+
+integrationPatterns:
+  - pattern: BFF event subscription
+    description: PayloadCMS subscribe a eventos del backend para actualizar UI
+    example: ExpedienteCreated → workspace actualiza bandeja
+
+  - pattern: UI action → backend event
+    description: Acciones de UI disparan eventos que backend procesa
+    example: ExpedienteUICreated → quarkus-app crea expediente real
+
+errorHandling:
+  - scenario: Event subscription fails
+    strategy: Reconnect with backoff
+    fallback: Polling fallback + alert
+
+  - scenario: UI event processing fails
+    strategy: Retry once
+    fallback: Show error toast to user + log

@@ -1,0 +1,132 @@
+# Permission Spec — Document Workspace
+# Define los permisos para la capa de presentación
+
+permissions: DocumentWorkspacePermissions
+version: 1.0.0
+description: Permisos para la capa de presentación (UI/BFF)
+
+roles:
+  - id: super-admin
+    name: Super Usuario
+    permissions:
+      - workspace:access:all
+      - expediente:create
+      - expediente:edit
+      - expediente:state-change
+      - expediente:cancel
+      - archivo:upload
+      - archivo:download:all
+      - dashboard:admin
+
+  - id: jefe-oficina
+    name: Jefe de Oficina
+    permissions:
+      - workspace:access:oficina
+      - expediente:create
+      - expediente:edit
+      - expediente:state-change
+      - expediente:cancel
+      - archivo:upload
+      - archivo:download
+      - dashboard:jefe
+
+  - id: tecnico
+    name: Técnico
+    permissions:
+      - workspace:access:oficina
+      - expediente:create
+      - expediente:edit
+      - archivo:upload
+      - archivo:download
+      - dashboard:tecnico
+
+  - id: residente
+    name: Residente
+    permissions:
+      - workspace:access:oficina
+      - expediente:create
+      - expediente:edit
+      - archivo:upload
+      - archivo:download
+      - dashboard:residente
+
+  - id: inspector
+    name: Inspector
+    permissions:
+      - workspace:access:oficina
+      - expediente:create
+      - archivo:upload
+      - archivo:download
+      - dashboard:inspector
+
+permissionDefinitions:
+  - id: workspace:access:all
+    description: Acceso al workspace de todas las oficinas
+    scope: global
+
+  - id: workspace:access:oficina
+    description: Acceso al workspace de la propia oficina
+    scope: office
+
+  - id: expediente:create
+    description: Crear expedientes desde la UI
+    scope: office
+
+  - id: expediente:edit
+    description: Editar expedientes desde la UI
+    scope: office
+
+  - id: expediente:state-change
+    description: Cambiar estado de expedientes desde la UI
+    scope: office
+    requiresJustification: true
+
+  - id: expediente:cancel
+    description: Cancelar expedientes desde la UI
+    scope: office
+    requiresJustification: true
+
+  - id: archivo:upload
+    description: Subir archivos mediante drag & drop
+    scope: office
+
+  - id: archivo:download:all
+    description: Descargar archivos de todas las oficinas
+    scope: global
+
+  - id: archivo:download
+    description: Descargar archivos de la propia oficina
+    scope: office
+
+  - id: dashboard:admin
+    description: Dashboard de administración global
+    scope: global
+
+  - id: dashboard:jefe
+    description: Dashboard de Jefe de Oficina
+    scope: office
+
+  - id: dashboard:tecnico
+    description: Dashboard de Técnico
+    scope: office
+
+  - id: dashboard:residente
+    description: Dashboard de Residente
+    scope: office
+
+  - id: dashboard:inspector
+    description: Dashboard de Inspector
+    scope: office
+
+rules:
+  - id: PERM-DW-01
+    description: Sin lógica de negocio
+    rule: Esta capa NO contiene reglas de negocio, solo delega a quarkus-app
+
+  - id: PERM-DW-02
+    description: UI adaptada al rol
+    rule: Mostrar/ocultar acciones según permisos del rol
+
+  - id: PERM-DW-03
+    description: Validación duplicada
+    rule: Validaciones de frontend son UX, validación real en quarkus-app

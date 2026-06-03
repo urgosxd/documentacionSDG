@@ -1,0 +1,111 @@
+# Permission Spec — Keycloak IAM
+# Define los permisos para identidad y acceso
+
+permissions: KeycloakIAMPermissions
+version: 1.0.0
+description: Permisos para gestión de identidad
+
+roles:
+  - id: super-admin
+    name: Super Usuario
+    permissions:
+      - auth:login
+      - auth:logout
+      - usuario:create
+      - usuario:edit
+      - usuario:deactivate
+      - rol:assign
+      - contraseña:reset
+      - session:read:all
+      - session:terminate:all
+
+  - id: jefe-oficina
+    name: Jefe de Oficina
+    permissions:
+      - auth:login
+      - auth:logout
+      - usuario:read:oficina
+      - session:read:oficina
+
+  - id: tecnico
+    name: Técnico
+    permissions:
+      - auth:login
+      - auth:logout
+      - usuario:read:oficina
+
+  - id: residente
+    name: Residente
+    permissions:
+      - auth:login
+      - auth:logout
+      - usuario:read:oficina
+
+  - id: inspector
+    name: Inspector
+    permissions:
+      - auth:login
+      - auth:logout
+      - usuario:read:oficina
+
+permissionDefinitions:
+  - id: auth:login
+    description: Iniciar sesión
+    scope: global
+
+  - id: auth:logout
+    description: Cerrar sesión
+    scope: global
+
+  - id: usuario:create
+    description: Crear usuarios en Keycloak
+    scope: global
+
+  - id: usuario:edit
+    description: Editar usuarios en Keycloak
+    scope: global
+
+  - id: usuario:deactivate
+    description: Desactivar usuarios en Keycloak
+    scope: global
+
+  - id: usuario:read:oficina
+    description: Leer usuarios de la propia oficina
+    scope: office
+
+  - id: rol:assign
+    description: Asignar roles a usuarios
+    scope: global
+
+  - id: contraseña:reset
+    description: Restablecer contraseñas
+    scope: global
+
+  - id: session:read:all
+    description: Leer sesiones de todos los usuarios
+    scope: global
+
+  - id: session:read:oficina
+    description: Leer sesiones de la propia oficina
+    scope: office
+
+  - id: session:terminate:all
+    description: Terminar sesiones de otros usuarios
+    scope: global
+
+rules:
+  - id: PERM-KC-01
+    description: Único proveedor
+    rule: Keycloak es el único proveedor de identidad
+
+  - id: PERM-KC-02
+    description: Política de contraseñas
+    rule: Mínimo 8 caracteres, 1 mayúscula, 1 número, 1 carácter especial
+
+  - id: PERM-KC-03
+    description: Sesión simultánea
+    rule: Máximo 1 sesión activa por usuario
+
+  - id: PERM-KC-04
+    description: Timeout por inactividad
+    rule: Sesión expira tras 5 minutos sin actividad

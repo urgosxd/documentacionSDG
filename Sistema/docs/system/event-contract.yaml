@@ -1,0 +1,155 @@
+# Event Contract — SGD System (Global)
+# Define los eventos que cruzan límites de servicio
+
+eventContract: SGDSystemEventContract
+version: 1.0.0
+description: Contrato de eventos a nivel de sistema (cross-service)
+
+eventCategories:
+  - category: Expediente Lifecycle
+    events:
+      - ExpedienteCreated
+      - ExpedienteStateChanged
+      - ExpedienteCancelado
+      - ArchivoAdjuntado
+
+  - category: Usuario Lifecycle
+    events:
+      - UsuarioCreated
+      - UsuarioDesactivado
+      - RolAsignado
+
+  - category: Session Management
+    events:
+      - SessionCreated
+      - SessionExpired
+      - TokenRefreshed
+
+  - category: Workflow
+    events:
+      - WorkflowStarted
+      - WorkflowCompleted
+      - WorkflowFailed
+      - ExpedienteFaltanteAlert
+
+publishedByService:
+  quarkus-app:
+    - ExpedienteCreated
+    - ExpedienteStateChanged
+    - ExpedienteCancelado
+    - ArchivoAdjuntado
+    - UsuarioCreated
+    - UsuarioDesactivado
+    - RolAsignado
+    - SessionCreated
+    - SessionExpired
+    - TokenRefreshed
+
+  inngest:
+    - WorkflowStarted
+    - WorkflowCompleted
+    - WorkflowFailed
+    - ExpedienteFaltanteAlert
+
+  payloadcms:
+    - WorkspaceViewLoaded
+    - ExpedienteUICreated
+    - ArchivoUIUploaded
+    - SessionTimeoutWarning
+
+consumedByService:
+  quarkus-app:
+    - WorkflowCompleted (from inngest)
+    - KeycloakUserSynced (from keycloak)
+
+  payloadcms:
+    - ExpedienteCreated (from quarkus-app)
+    - ExpedienteStateChanged (from quarkus-app)
+    - ArchivoAdjuntado (from quarkus-app)
+    - SessionCreated (from quarkus-app)
+    - SessionExpired (from quarkus-app)
+    - UsuarioCreated (from quarkus-app)
+
+  inngest:
+    - ExpedienteCreated (from quarkus-app)
+    - ExpedienteStateChanged (from quarkus-app)
+
+eventBus:
+  type: RabbitMQ
+  channels:
+    - expediente.created
+    - expediente.state-changed
+    - expediente.cancelled
+    - archivo.adjuntado
+    - usuario.created
+    - usuario.desactivado
+    - rol.asignado
+    - workflow.started
+    - workflow.completed
+    - workflow.failed
+    - expediente.faltante.alert
+
+integrationPatterns:
+  - pattern: Event-driven state transition
+    description: Cambios de estado publican eventos que otros servicios consumen
+    flow: ExpedienteStateChanged → workflow procesa → notifica → completa
+    services: [quarkus-app, inngest, payloadcms]
+
+  - pattern: Saga coordination
+    description: Multiple services coordinate via events for complex operations
+    flow: CrearExpediente → workflow inicia → storage persiste → workspace actualiza
+    services: [quarkus-app, inngest, storage, payloadcms]
+
+  - pattern: BFF event subscription
+    description: PayloadCMS subscribe a eventos del backend para actualizar UI
+    flow: Backend event → payloadcms consume → UI actualiza
+    services: [quarkus-app, payloadcms]
+
+  - pattern: Event retry with backoff
+    description: Reintentos automáticos con backoff exponencial
+    flow: Event fails → retry (max 3) → dead letter queue
+    services: [all]
+
+errorHandling:
+  - scenario: Event publishing fails
+    strategy: Retry with exponential backoff (max 3 attempts)
+    fallback: Dead-letter queue + alert admin
+    services: [all]
+
+  - scenario: Event consumer unreachable
+    strategy: Retry delivery with backoff
+    fallback: Dead-letter queue
+    services: [all]
+
+  - scenario: Event schema mismatch
+    strategy: Reject event, log error
+    fallback: Alert producer service
+    services: [all]
+
+  - scenario: Event processing fails
+    strategy: Retry idempotently (max 3)
+    fallback: Dead-letter queue + manual review
+    services: [all]
+
+deadLetterQueue:
+  enabled: true
+  retention: 7 days
+  alerting: true
+  manualReview: true
+  channels:
+    - expediente.dlq
+    - usuario.dlq
+    - workflow.dlq
+    - storage.dlq
+
+monitoring:
+  metrics:
+    - event.published.count
+    - event.consumed.count
+    - event.failed.count
+    - event.retry.count
+    - dlq.size
+  alerting:
+    - dlq.size > 100 → alert
+    - event.failed.count > 10/min → alert
+    - event.retry.count > 50/min → alert

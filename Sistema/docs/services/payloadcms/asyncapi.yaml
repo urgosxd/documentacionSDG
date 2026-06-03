@@ -1,0 +1,332 @@
+# AsyncAPI Specification — PayloadCMS (BFF/Facade)
+# Define los canales y mensajes para comunicación asíncrona vía RabbitMQ
+
+asyncapi: 2.6.0
+info:
+  title: PayloadCMS - RabbitMQ Channels
+  version: 1.0.0
+  description: Especificación AsyncAPI para eventos asíncronos del BFF/Facade
+
+servers:
+  production:
+    url: rabbitmq://rabbitmq.sgd.internal:5672
+    protocol: rabbitmq
+    description: RabbitMQ server de producción
+    variables:
+      vhost:
+        default: /sgd
+        description: Virtual host para SGD
+
+  development:
+    url: rabbitmq://localhost:5672
+    protocol: rabbitmq
+    description: RabbitMQ local para desarrollo
+
+channels:
+  workspace.view-loaded:
+    description: Canal para eventos de carga de workspace
+    publish:
+      operationId: publishWorkspaceViewLoaded
+      summary: Publica cuando se carga la vista del workspace
+      message:
+        $ref: '#/components/messages/WorkspaceViewLoaded'
+
+  expediente.ui-created:
+    description: Canal para eventos de creación de expediente en UI
+    publish:
+      operationId: publishExpedienteUICreated
+      summary: Publica cuando usuario crea expediente en UI
+      message:
+        $ref: '#/components/messages/ExpedienteUICreated'
+
+  archivo.ui-uploaded:
+    description: Canal para eventos de subida de archivo en UI
+    publish:
+      operationId: publishArchivoUIUploaded
+      summary: Publica cuando usuario sube archivo mediante UI
+      message:
+        $ref: '#/components/messages/ArchivoUIUploaded'
+
+  session.timeout-warning:
+    description: Canal para advertencias de timeout de sesión
+    publish:
+      operationId: publishSessionTimeoutWarning
+      summary: Publica advertencia de timeout de sesión
+      message:
+        $ref: '#/components/messages/SessionTimeoutWarning'
+
+  expediente.created:
+    description: Canal para eventos de creación de expedientes (consumido)
+    subscribe:
+      operationId: subscribeExpedienteCreated
+      summary: Suscribe para actualizar UI cuando se crea expediente
+      message:
+        $ref: '#/components/messages/ExpedienteCreated'
+
+  expediente.state-changed:
+    description: Canal para eventos de cambio de estado (consumido)
+    subscribe:
+      operationId: subscribeExpedienteStateChanged
+      summary: Suscribe para actualizar estado en UI
+      message:
+        $ref: '#/components/messages/ExpedienteStateChanged'
+
+  archivo.adjuntado:
+    description: Canal para eventos de archivos adjuntados (consumido)
+    subscribe:
+      operationId: subscribeArchivoAdjuntado
+      summary: Suscribe para actualizar lista de archivos en UI
+      message:
+        $ref: '#/components/messages/ArchivoAdjuntado'
+
+  session.created:
+    description: Canal para eventos de creación de sesión (consumido)
+    subscribe:
+      operationId: subscribeSessionCreated
+      summary: Suscribe para actualizar estado de autenticación
+      message:
+        $ref: '#/components/messages/SessionCreated'
+
+  session.expired:
+    description: Canal para eventos de expiración de sesión (consumido)
+    subscribe:
+      operationId: subscribeSessionExpired
+      summary: Suscribe para redirigir a login
+      message:
+        $ref: '#/components/messages/SessionExpired'
+
+  usuario.created:
+    description: Canal para eventos de creación de usuarios (consumido)
+    subscribe:
+      operationId: subscribeUsuarioCreated
+      summary: Suscribe para actualizar listas de usuarios en UI
+      message:
+        $ref: '#/components/messages/UsuarioCreated'
+
+components:
+  messages:
+    WorkspaceViewLoaded:
+      name: WorkspaceViewLoaded
+      title: Workspace View Loaded Event
+      contentType: application/json
+      payload:
+        type: object
+        required: [viewId, usuarioId, rol, oficinaId, estadoUI, timestamp]
+        properties:
+          viewId:
+            type: string
+            format: uuid
+          usuarioId:
+            type: string
+            format: uuid
+          rol:
+            type: string
+            enum: [super-admin, jefe-oficina, inspector, residente, tecnico]
+          oficinaId:
+            type: string
+            format: uuid
+          estadoUI:
+            type: string
+            enum: [authenticated, expediente-created, expediente-listed, expediente-detail]
+          timestamp:
+            type: string
+            format: date-time
+
+    ExpedienteUICreated:
+      name: ExpedienteUICreated
+      title: Expediente UI Created Event
+      contentType: application/json
+      payload:
+        type: object
+        required: [viewId, usuarioId, tipo, asunto, proyectoId, timestamp]
+        properties:
+          viewId:
+            type: string
+            format: uuid
+          usuarioId:
+            type: string
+            format: uuid
+          tipo:
+            type: string
+            enum: [expediente-tecnico, expediente-ejecucion, expediente-adicionales, expediente-liquidacion]
+          asunto:
+            type: string
+          proyectoId:
+            type: string
+            format: uuid
+          timestamp:
+            type: string
+            format: date-time
+
+    ArchivoUIUploaded:
+      name: ArchivoUIUploaded
+      title: Archivo UI Uploaded Event
+      contentType: application/json
+      payload:
+        type: object
+        required: [expedienteId, nombreOriginal, tamaño, formato, usuarioId, timestamp]
+        properties:
+          expedienteId:
+            type: string
+            format: uuid
+          nombreOriginal:
+            type: string
+          tamaño:
+            type: integer
+          formato:
+            type: string
+            enum: [PDF, DOCX]
+          usuarioId:
+            type: string
+            format: uuid
+          timestamp:
+            type: string
+            format: date-time
+
+    SessionTimeoutWarning:
+      name: SessionTimeoutWarning
+      title: Session Timeout Warning Event
+      contentType: application/json
+      payload:
+        type: object
+        required: [sessionId, usuarioId, timeRemaining, timestamp]
+        properties:
+          sessionId:
+            type: string
+            format: uuid
+          usuarioId:
+            type: string
+            format: uuid
+          timeRemaining:
+            type: integer
+            description: Seconds remaining until timeout
+          timestamp:
+            type: string
+            format: date-time
+
+    ExpedienteCreated:
+      name: ExpedienteCreated
+      title: Expediente Created Event (from quarkus-app)
+      contentType: application/json
+      payload:
+        type: object
+        required: [id, nomenclatura, estado, createdAt]
+        properties:
+          id:
+            type: string
+            format: uuid
+          nomenclatura:
+            type: string
+          estado:
+            type: string
+            enum: [borrador, enviado, observado, subsanado, aprobado, archivado]
+          createdAt:
+            type: string
+            format: date-time
+
+    ExpedienteStateChanged:
+      name: ExpedienteStateChanged
+      title: Expediente State Changed Event (from quarkus-app)
+      contentType: application/json
+      payload:
+        type: object
+        required: [expedienteId, estadoAnterior, estadoNuevo, timestamp]
+        properties:
+          expedienteId:
+            type: string
+            format: uuid
+          estadoAnterior:
+            type: string
+          estadoNuevo:
+            type: string
+          timestamp:
+            type: string
+            format: date-time
+
+    ArchivoAdjuntado:
+      name: ArchivoAdjuntado
+      title: Archivo Adjuntado Event (from quarkus-app)
+      contentType: application/json
+      payload:
+        type: object
+        required: [id, expedienteId, nombreOriginal, fechaSubida]
+        properties:
+          id:
+            type: string
+            format: uuid
+          expedienteId:
+            type: string
+            format: uuid
+          nombreOriginal:
+            type: string
+          fechaSubida:
+            type: string
+            format: date-time
+
+    SessionCreated:
+      name: SessionCreated
+      title: Session Created Event (from quarkus-app)
+      contentType: application/json
+      payload:
+        type: object
+        required: [sessionId, usuarioId, rol, expiresAt]
+        properties:
+          sessionId:
+            type: string
+            format: uuid
+          usuarioId:
+            type: string
+            format: uuid
+          rol:
+            type: string
+          expiresAt:
+            type: string
+            format: date-time
+
+    SessionExpired:
+      name: SessionExpired
+      title: Session Expired Event (from quarkus-app)
+      contentType: application/json
+      payload:
+        type: object
+        required: [sessionId, usuarioId, timestamp]
+        properties:
+          sessionId:
+            type: string
+            format: uuid
+          usuarioId:
+            type: string
+            format: uuid
+          timestamp:
+            type: string
+            format: date-time
+
+    UsuarioCreated:
+      name: UsuarioCreated
+      title: Usuario Created Event (from quarkus-app)
+      contentType: application/json
+      payload:
+        type: object
+        required: [id, username, rol, oficinaId]
+        properties:
+          id:
+            type: string
+            format: uuid
+          username:
+            type: string
+          rol:
+            type: string
+          oficinaId:
+            type: string
+            format: uuid
+
+  correlationIds:
+    WorkspaceCorrelation:
+      description: Correlation ID para eventos de workspace
+      location: $message.header#/correlationId
+      expression: $message.header#/correlationId
+
+    SessionCorrelation:
+      description: Correlation ID para eventos de sesión
+      location: $message.header#/correlationId
+      expression: $message.header#/correlationId

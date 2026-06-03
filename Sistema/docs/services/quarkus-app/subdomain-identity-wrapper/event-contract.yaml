@@ -1,0 +1,84 @@
+# Event Contract — Identity Wrapper
+# Define los eventos de autenticación
+
+eventContract: IdentityWrapperEventContract
+version: 1.0.0
+description: Contrato de eventos para autenticación
+
+publishedEvents:
+  - name: SessionCreated
+    description: Evento disparado cuando se crea una nueva sesión
+    trigger: Usuario inicia sesión exitosamente
+    schema:
+      type: object
+      properties:
+        sessionId:
+          type: string
+          format: uuid
+        usuarioId:
+          type: string
+          format: uuid
+        token:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+    consumers:
+      - payloadcms/workspace (para manejar estado de sesión en frontend)
+
+  - name: SessionExpired
+    description: Evento disparado cuando una sesión expira por inactividad
+    trigger: Timeout de 5 minutos sin actividad
+    schema:
+      type: object
+      properties:
+        sessionId:
+          type: string
+          format: uuid
+        usuarioId:
+          type: string
+          format: uuid
+        lastActivity:
+          type: string
+          format: date-time
+        timestamp:
+          type: string
+          format: date-time
+    consumers:
+      - payloadcms/workspace (para redirigir a login)
+
+  - name: TokenRefreshed
+    description: Evento disparado cuando se refresca un token
+    trigger: Token expirado se refresca con refresh token
+    schema:
+      type: object
+      properties:
+        sessionId:
+          type: string
+          format: uuid
+        tokenNuevo:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+    consumers:
+      - payloadcms/workspace (para actualizar token en frontend)
+
+consumedEvents:
+  - name: KeycloakTokenValidated
+    description: Evento consumido cuando Keycloak valida un token
+    source: keycloak/iam
+    action: Crear/actualizar sesión
+    schema:
+      type: object
+      properties:
+        usuarioId:
+          type: string
+          format: uuid
+        token:
+          type: string
+        rol:
+          type: string
+        timestamp:
+          type: string
+          format: date-time

@@ -1,0 +1,177 @@
+# Event Contract — Expediente Management
+# Define los eventos publicados/consumidos por el subdominio
+
+eventContract: ExpedienteEventContract
+version: 1.0.0
+description: Contrato de eventos para el subdominio Expediente Management
+
+publishedEvents:
+  - name: ExpedienteCreated
+    description: Evento disparado cuando se crea un nuevo expediente
+    trigger: CrearExpediente command ejecutado
+    schema:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        proyectoId:
+          type: string
+          format: uuid
+        tipo:
+          type: string
+          enum: [expediente-tecnico, expediente-ejecucion, expediente-adicionales, expediente-liquidacion]
+        estado:
+          type: string
+          enum: [borrador]
+        oficinaId:
+          type: string
+          format: uuid
+        responsableId:
+          type: string
+          format: uuid
+        asunto:
+          type: string
+        nomenclatura:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    consumers:
+      - inngest/workflow (para iniciar proceso documental)
+      - payloadcms/workspace (para actualizar UI)
+
+  - name: ArchivoAdjuntado
+    description: Evento disparado cuando se adjunta un archivo a un expediente
+    trigger: AdjuntarArchivo command ejecutado
+    schema:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        expedienteId:
+          type: string
+          format: uuid
+        nombreOriginal:
+          type: string
+        hash:
+          type: string
+        tamaño:
+          type: integer
+        formato:
+          type: string
+          enum: [PDF, DOCX]
+        fechaSubida:
+          type: string
+          format: date-time
+        usuarioSubidorId:
+          type: string
+          format: uuid
+    consumers:
+      - storage (para persistir archivo físico)
+      - payloadcms/workspace (para actualizar UI)
+
+  - name: ExpedienteStateChanged
+    description: Evento disparado cuando cambia el estado de un expediente
+    trigger: CambiarEstado command ejecutado
+    schema:
+      type: object
+      properties:
+        expedienteId:
+          type: string
+          format: uuid
+        estadoAnterior:
+          type: string
+        estadoNuevo:
+          type: string
+        usuarioId:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+        justificacion:
+          type: string
+          nullable: true
+    consumers:
+      - inngest/workflow (para orquestar siguientes pasos)
+      - payloadcms/workspace (para actualizar UI)
+      - notification-service (para enviar notificaciones)
+
+  - name: ExpedienteCancelado
+    description: Evento disparado cuando se cancela un expediente
+    trigger: CancelarExpediente command ejecutado
+    schema:
+      type: object
+      properties:
+        expedienteId:
+          type: string
+          format: uuid
+        usuarioId:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+        justificacion:
+          type: string
+    consumers:
+      - inngest/workflow (para detener procesos asociados)
+      - payloadcms/workspace (para actualizar UI)
+
+consumedEvents:
+  - name: WorkflowCompleted
+    description: Evento consumido cuando un workflow de expediente termina
+    source: inngest/workflow
+    action: Actualizar estado del expediente a APROBADO
+    schema:
+      type: object
+      properties:
+        expedienteId:
+          type: string
+          format: uuid
+        workflowId:
+          type: string
+          format: uuid
+        resultado:
+          type: string
+          enum: [aprobado, rechazado]
+        timestamp:
+          type: string
+          format: date-time
+
+  - name: UserAssigned
+    description: Evento consumido cuando se asigna un nuevo responsable
+    source: quarkus-app/users
+    action: Actualizar responsableId del expediente
+    schema:
+      type: object
+      properties:
+        usuarioId:
+          type: string
+          format: uuid
+        oficinaId:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+
+integrationPatterns:
+  - pattern: Event-driven state transition
+    description: Los cambios de estado publican eventos que otros servicios consumen
+    example: ExpedienteStateChanged → workflow procesa siguiente paso
+
+  - pattern: Saga coordination
+    description: Multiple services coordinate via events for complex operations
+    example: CrearExpediente → workflow inicia → storage persiste archivos
+
+errorHandling:
+  - scenario: Event publishing fails
+    strategy: Retry with exponential backoff (max 3 attempts)
+    fallback: Log to dead-letter queue for manual review
+
+  - scenario: Event consumer fails
+    strategy: Consumer retries idempotently
+    fallback: Dead-letter queue with alert

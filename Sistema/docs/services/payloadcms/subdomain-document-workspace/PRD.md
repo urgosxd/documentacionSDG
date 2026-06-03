@@ -10,6 +10,8 @@
 
 Proveer la capa de interacción visual donde los usuarios trabajan con los **expedientes** del SGD. Actúa como **Frontend** y **BFF (Backend For Frontend) / Facade**, orquestando la experiencia de usuario sin contener lógica de negocio del dominio.
 
+**Nota importante**: PayloadCMS NO maneja la máquina de estados de expedientes (borrador/enviado/observado/etc.). Solo maneja estados de contenido UI (draft/published para páginas/forms). La máquina de estados de expedientes está en quarkus-app/expediente-management y inngest/workflow.
+
 PayloadCMS funciona como la plataforma donde los usuarios humanos:
 - crean expedientes
 - editan borradores
@@ -33,7 +35,9 @@ PayloadCMS funciona como la plataforma donde los usuarios humanos:
 - Experiencia de workspace de expedientes.
 - Renderizado de archivos (previsualización PDF de documentos adjuntos).
 - Comunicación con inngest para notificaciones en tiempo real.
+- Estados de contenido UI: draft/published (solo para páginas/forms del CMS).
 - NO contiene lógica de negocio del dominio — toda operación crítica delega en quarkus-app.
+- NO maneja estados de expedientes — solo consulta/visualiza estados de quarkus-app.
 
 ---
 

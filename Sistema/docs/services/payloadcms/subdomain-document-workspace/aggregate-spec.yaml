@@ -1,0 +1,156 @@
+# Aggregate Spec — Document Workspace
+# Define los aggregates de la capa de presentación
+
+aggregate: DocumentWorkspace
+version: 1.0.0
+description: Aggregate para la capa de presentación y workspace visual
+rootEntity: WorkspaceView
+
+entities:
+  - name: WorkspaceView
+    type: aggregate-root
+    description: Vista del área de trabajo del usuario
+    identity:
+      field: viewId
+      type: UUID
+      generated: true
+    fields:
+      - name: viewId
+        type: UUID
+        required: true
+      - name: usuarioId
+        type: UUID
+        required: true
+      - name: rol
+        type: string
+        required: true
+      - name: oficinaId
+        type: UUID
+        required: true
+      - name: estadoUI
+        type: string
+        required: true
+        enum:
+          - unauthenticated
+          - authenticated
+          - expediente-created
+          - expediente-listed
+          - expediente-detail
+      - name: expedienteEstado
+        type: string
+        required: false
+        description: Estado del expediente (borrador/enviado/etc.) — consultado desde quarkus-app, NO gestionado aquí
+
+  - name: ExpedienteForm
+    type: entity
+    description: Formulario de creación/edición de expedientes
+    fields:
+      - name: formId
+        type: UUID
+        required: true
+      - name: tipo
+        type: string
+        required: true
+      - name: asunto
+        type: string
+        required: true
+      - name: metadata
+        type: object
+        required: false
+      - name: archivosAdjuntos
+        type: array
+        required: false
+
+  - name: TrayExpedientes
+    type: entity
+    description: Bandeja visual de expedientes por oficina
+    fields:
+      - name: trayId
+        type: UUID
+        required: true
+      - name: oficinaId
+        type: UUID
+        required: true
+      - name: filtros
+        type: object
+        required: false
+      - name: expedientes
+        type: array
+        required: true
+      - name: page
+        type: integer
+        required: true
+      - name: totalPages
+        type: integer
+        required: true
+
+  - name: DashboardView
+    type: entity
+    description: Panel principal según rol del usuario
+    fields:
+      - name: dashboardId
+        type: UUID
+        required: true
+      - name: rol
+        type: string
+        required: true
+      - name: widgets
+        type: array
+        required: true
+
+invariants:
+  - id: INV-DW-01
+    description: Sin lógica de negocio
+    rule: Esta capa NO contiene reglas de negocio del dominio
+
+  - id: INV-DW-02
+    description: BFF obligatorio
+    rule: El frontend nunca se comunica directamente con quarkus-app. Siempre pasa por BFF
+
+  - id: INV-DW-03
+    description: Validación duplicada
+    rule: Las validaciones de frontend son solo UX, la validación real ocurre en quarkus-app
+
+  - id: INV-DW-04
+    description: Sin máquina de estados de expedientes
+    rule: PayloadCMS NO gestiona estados de expedientes. Solo consulta/visualiza desde quarkus-app
+
+  - id: INV-DW-05
+    description: Estados UI limitados
+    rule: PayloadCMS solo maneja draft/published para contenido de páginas/forms del CMS
+
+commands:
+  - name: CargarWorkspace
+    description: Carga la vista del workspace
+    fields:
+      - usuarioId
+      - rol
+      - oficinaId
+
+  - name: CrearExpedienteUI
+    description: Inicia creación de expediente en la UI
+    fields:
+      - tipo
+      - asunto
+      - metadata
+
+  - name: AdjuntarArchivoUI
+    description: Adjunta archivo mediante drag & drop
+    fields:
+      - expedienteId
+      - archivo
+      - metadata
+
+queries:
+  - name: ObtenerWorkspaceView
+    description: Obtiene la vista actual del workspace
+    params:
+      - usuarioId: UUID
+
+  - name: ListarExpedientesUI
+    description: Lista expedientes para la bandeja UI
+    params:
+      - oficinaId: UUID
+      - filtros: object
+      - page: integer
+      - limit: integer

@@ -1,0 +1,99 @@
+# Event Contract — Keycloak IAM
+# Define los eventos de identidad
+
+eventContract: KeycloakIAMEventContract
+version: 1.0.0
+description: Contrato de eventos para identidad y acceso
+
+publishedEvents:
+  - name: UsuarioAutenticado
+    description: Evento disparado cuando un usuario se autentica
+    trigger: Autenticación exitosa
+    schema:
+      type: object
+      properties:
+        usuarioId:
+          type: string
+          format: uuid
+        username:
+          type: string
+        rol:
+          type: string
+        token:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+    consumers:
+      - identity-wrapper (para crear sesión)
+      - payloadcms/workspace (para actualizar estado de autenticación)
+
+  - name: UsuarioDesactivado
+    description: Evento disparado cuando se desactiva un usuario
+    trigger: Usuario desactivado en Keycloak
+    schema:
+      type: object
+      properties:
+        usuarioId:
+          type: string
+          format: uuid
+        username:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+    consumers:
+      - identity-wrapper (para invalidar sesiones)
+      - expediente-management (para reasignar expedientes)
+
+  - name: RolActualizado
+    description: Evento disparado cuando se actualiza un rol
+    trigger: Rol de usuario modificado
+    schema:
+      type: object
+      properties:
+        usuarioId:
+          type: string
+          format: uuid
+        rolAnterior:
+          type: string
+        rolNuevo:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+    consumers:
+      - identity-wrapper (para actualizar claims)
+      - todos los servicios (para actualizar permisos)
+
+consumedEvents:
+  - name: UsuarioCreadoSGD
+    description: Evento consumido para crear usuario en Keycloak
+    source: quarkus-app/users
+    action: Crear usuario en realm del SGD
+    schema:
+      type: object
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+        rol:
+          type: string
+        oficinaId:
+          type: string
+          format: uuid
+
+integrationPatterns:
+  - pattern: Centralized auth
+    description: Toda autenticación pasa por Keycloak
+    example: Usuario → Keycloak → token JWT → identity-wrapper → servicios
+
+errorHandling:
+  - scenario: Authentication fails
+    strategy: Return 401
+    fallback: Log attempt, alert if repeated
+
+  - scenario: Keycloak unreachable
+    strategy: Retry with backoff
+    fallback: Return 503 Service Unavailable

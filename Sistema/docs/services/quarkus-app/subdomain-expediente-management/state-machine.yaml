@@ -1,0 +1,132 @@
+# State Machine — Expediente Management
+# Define las transiciones válidas de estado para el aggregate Expediente
+
+stateMachine: ExpedienteStateMachine
+version: 1.0.0
+description: Máquina de estados para gestión de expedientes del SGD
+
+states:
+  - id: BORRADOR
+    description: Expediente creado pero no enviado
+    initial: true
+    allowedActions:
+      - enviar
+      - cancelar
+
+  - id: ENVIADO
+    description: Expediente enviado para revisión/aprobación
+    allowedActions:
+      - aprobar
+      - observar
+      - archivar
+
+  - id: OBSERVADO
+    description: Expediente con observaciones pendientes de subsanación
+    allowedActions:
+      - subsanar
+      - cancelar
+
+  - id: SUBSANADO
+    description: Expediente con observaciones corregidas
+    allowedActions:
+      - enviar
+      - cancelar
+
+  - id: APROBADO
+    description: Expediente aprobado
+    allowedActions:
+      - archivar
+
+  - id: ARCHIVADO
+    description: Expediente archivado (estado terminal)
+    terminal: true
+    allowedActions: []
+
+transitions:
+  - from: BORRADOR
+    to: ENVIADO
+    action: enviar
+    requiredRole: jefe-oficina
+    requiresJustification: false
+
+  - from: BORRADOR
+    to: BORRADOR
+    action: cancelar
+    requiredRole: jefe-oficina
+    requiresJustification: true
+
+  - from: ENVIADO
+    to: APROBADO
+    action: aprobar
+    requiredRole: jefe-oficina
+    requiresJustification: false
+
+  - from: ENVIADO
+    to: OBSERVADO
+    action: observar
+    requiredRole: jefe-oficina
+    requiresJustification: true
+
+  - from: ENVIADO
+    to: ARCHIVADO
+    action: archivar
+    requiredRole: super-admin
+    requiresJustification: false
+
+  - from: OBSERVADO
+    to: SUBSANADO
+    action: subsanar
+    requiredRole: jefe-oficina
+    requiresJustification: true
+
+  - from: OBSERVADO
+    to: BORRADOR
+    action: cancelar
+    requiredRole: jefe-oficina
+    requiresJustification: true
+
+  - from: SUBSANADO
+    to: ENVIADO
+    action: enviar
+    requiredRole: jefe-oficina
+    requiresJustification: false
+
+  - from: SUBSANADO
+    to: BORRADOR
+    action: cancelar
+    requiredRole: jefe-oficina
+    requiresJustification: true
+
+  - from: APROBADO
+    to: ARCHIVADO
+    action: archivar
+    requiredRole: super-admin
+    requiresJustification: false
+
+rules:
+  - id: SM-01
+    description: Archivado es estado terminal
+    constraint: No se permiten transiciones desde ARCHIVADO
+
+  - id: SM-02
+    description: Justificación obligatoria para observar
+    constraint: Toda transición a OBSERVADO requiere justificación textual
+
+  - id: SM-03
+    description: Solo Jefe de Oficina o Super Usuario pueden cambiar estados
+    constraint: Validar rol antes de ejecutar transición
+
+  - id: SM-04
+    description: Trazabilidad obligatoria
+    constraint: Toda transición registra usuario, fecha, estado anterior, estado nuevo, justificación
+
+events:
+  - name: ExpedienteStateChanged
+    trigger: onTransition
+    payload:
+      expedienteId: string
+      estadoAnterior: string
+      estadoNuevo: string
+      usuarioId: string
+      timestamp: datetime
+      justificacion: string (optional)

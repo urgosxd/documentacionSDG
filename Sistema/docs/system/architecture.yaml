@@ -1,0 +1,159 @@
+# Architecture Spec — SGD System
+# Define la arquitectura del sistema a nivel de servicios y subdominios
+
+architecture: SGDSystemArchitecture
+version: 1.0.0
+description: Arquitectura del Sistema de Gestión de Expedientes
+
+domain: Enterprise Document Management
+type: DDD-based microservices
+
+services:
+  - name: quarkus-app
+    stack: Java / Quarkus
+    type: core-backend
+    subdomains:
+      - expediente-management (Core)
+      - users (Core)
+      - identity-wrapper (Support)
+    interfaces:
+      - REST API (OpenAPI 3.0)
+      - Event publishing (async)
+    dependencies:
+      - keycloak (IAM)
+      - storage (SeaweedFS)
+      - inngest (workflow)
+
+  - name: payloadcms
+    stack: Node.js / PayloadCMS
+    type: frontend-bff
+    subdomains:
+      - document-workspace (Support)
+    interfaces:
+      - REST API (OpenAPI 3.0 - BFF)
+      - Web UI (React/Payload)
+    dependencies:
+      - quarkus-app (core backend)
+      - inngest (notifications)
+
+  - name: inngest
+    stack: TypeScript / Inngest
+    type: workflow-manager
+    subdomains:
+      - workflow (Support)
+    interfaces:
+      - Async events (AsyncAPI - RabbitMQ)
+      - Event publishing
+    dependencies:
+      - quarkus-app (expediente events)
+      - rabbitmq (message broker)
+
+  - name: storage
+    stack: SeaweedFS (Docker Compose)
+    type: infrastructure
+    subdomains:
+      - storage (Generic)
+    interfaces:
+      - Internal API (quarkus-app only)
+    dependencies:
+      - none (storage provider)
+
+  - name: keycloak
+    stack: Keycloak (Docker Compose)
+    type: infrastructure
+    subdomains:
+      - keycloak-iam (Generic)
+    interfaces:
+      - OIDC / OAuth 2.0
+      - Admin API
+    dependencies:
+      - none (IAM provider)
+
+communicationPatterns:
+  - pattern: Sync REST
+    description: Comunicación síncrona vía REST/HTTP
+    example: payloadcms → quarkus-app (BFF pattern)
+
+  - pattern: Async Events
+    description: Comunicación asíncrona vía eventos
+    example: quarkus-app → inngest (workflow triggers)
+
+  - pattern: Event-driven
+    description: Servicios se comunican mediante eventos publicados
+    example: ExpedienteCreated → workflow inicia proceso
+
+  - pattern: BFF
+    description: Backend For Frontend - payloadcms orquesta llamadas
+    example: Frontend → payloadcms BFF → quarkus-app services
+
+dataFlow:
+  - flow: Crear expediente
+    steps:
+      - payloadcms: Usuario crea expediente en UI
+      - payloadcms BFF: Valida formulario
+      - quarkus-app: Crea expediente (aggregate)
+      - quarkus-app: Publica evento ExpedienteCreated
+      - inngest: Consume evento, inicia workflow
+      - payloadcms: Actualiza UI
+
+  - flow: Adjuntar archivo
+    steps:
+      - payloadcms: Drag & drop archivo
+      - payloadcms BFF: Upload a quarkus-app
+      - quarkus-app: Valida formato, genera hash
+      - quarkus-app: Sube a SeaweedFS
+      - storage: Retorna fid
+      - quarkus-app: Guarda metadata + fid
+      - quarkus-app: Publica evento ArchivoAdjuntado
+      - payloadcms: Actualiza lista de archivos
+
+  - flow: Cambiar estado
+    steps:
+      - payloadcms: Usuario selecciona nuevo estado
+      - payloadcms BFF: Envía request a quarkus-app
+      - quarkus-app: Valida state machine
+      - quarkus-app: Valida permisos (RBAC)
+      - quarkus-app: Ejecuta transición
+      - quarkus-app: Publica evento ExpedienteStateChanged
+      - inngest: Consume evento, procesa siguiente paso
+      - payloadcms: Actualiza estado en UI
+
+deployment:
+  - environment: production
+    services:
+      - quarkus-app: Kubernetes / Docker Swarm
+      - payloadcms: Kubernetes / Docker Swarm
+      - inngest: Kubernetes / Docker Swarm
+      - storage: Docker Compose (SeaweedFS cluster)
+      - keycloak: Docker Compose (Keycloak cluster)
+      - rabbitmq: Docker Compose (message broker)
+
+  - environment: development
+    services:
+      - All services: Docker Compose local
+
+scalability:
+  - quarkus-app: Horizontal scaling (stateless)
+  - payloadcms: Horizontal scaling (stateless)
+  - inngest: Horizontal scaling (stateless workers)
+  - storage: Vertical scaling (SeaweedFS volume)
+  - keycloak: Horizontal scaling (cluster mode)
+
+security:
+  - authentication: Keycloak (OIDC/OAuth 2.0)
+  - authorization: RBAC via JWT claims
+  - api-security: Bearer token (JWT)
+  - storage-security: Internal network only, mTLS
+  - event-security: RabbitMQ auth, encrypted channels
+
+observability:
+  - logging: Centralized logging (ELK stack)
+  - metrics: Prometheus + Grafana
+  - tracing: Distributed tracing (OpenTelemetry)
+  - alerting: Alertmanager + Slack/PagerDuty
+
+resilience:
+  - retry: Exponential backoff (max 3 attempts)
+  - fallback: Dead-letter queue for failed events
+  - timeout: Request timeouts configured per service
+  - circuit-breaker: For external service calls (Keycloak, Storage)

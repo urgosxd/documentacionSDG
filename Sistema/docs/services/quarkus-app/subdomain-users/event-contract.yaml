@@ -1,0 +1,117 @@
+# Event Contract — Users
+# Define los eventos publicados/consumidos por el subdomain Users
+
+eventContract: UsersEventContract
+version: 1.0.0
+description: Contrato de eventos para el subdomain Users
+
+publishedEvents:
+  - name: UsuarioCreated
+    description: Evento disparado cuando se crea un nuevo usuario
+    trigger: CrearUsuario command ejecutado
+    schema:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        nombreCompleto:
+          type: string
+        username:
+          type: string
+        rol:
+          type: string
+          enum: [super-admin, jefe-oficina, inspector, residente, tecnico]
+        oficinaId:
+          type: string
+          format: uuid
+        activo:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+    consumers:
+      - keycloak (para crear usuario en IAM)
+      - payloadcms/workspace (para actualizar listas de usuarios)
+      - expediente-management (para asignar expedientes)
+
+  - name: UsuarioDesactivado
+    description: Evento disparado cuando se desactiva un usuario
+    trigger: DesactivarUsuario command ejecutado
+    schema:
+      type: object
+      properties:
+        usuarioId:
+          type: string
+          format: uuid
+        username:
+          type: string
+        justificacion:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+    consumers:
+      - keycloak (para bloquear acceso)
+      - expediente-management (para reasignar expedientes)
+
+  - name: RolAsignado
+    description: Evento disparado cuando se asigna un rol a un usuario
+    trigger: AsignarRol command ejecutado
+    schema:
+      type: object
+      properties:
+        usuarioId:
+          type: string
+          format: uuid
+        rolAnterior:
+          type: string
+        rolNuevo:
+          type: string
+        oficinaId:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+    consumers:
+      - identity-wrapper (para actualizar claims en token)
+      - expediente-management (para actualizar permisos)
+
+consumedEvents:
+  - name: KeycloakUserSynced
+    description: Evento consumido cuando Keycloak sincroniza un usuario
+    source: keycloak/iam
+    action: Actualizar estado de sincronización del usuario
+    schema:
+      type: object
+      properties:
+        usuarioId:
+          type: string
+          format: uuid
+        keycloakId:
+          type: string
+          format: uuid
+        synced:
+          type: boolean
+        timestamp:
+          type: string
+          format: date-time
+
+integrationPatterns:
+  - pattern: User lifecycle sync
+    description: Los eventos de usuario se sincronizan con Keycloak
+    example: UsuarioCreated → keycloak crea usuario IAM
+
+  - pattern: Role propagation
+    description: Cambios de rol se propagan a todos los servicios
+    example: RolAsignado → identity-wrapper actualiza claims → todos los servicios actualizan permisos
+
+errorHandling:
+  - scenario: Keycloak sync fails
+    strategy: Retry with exponential backoff (max 3 attempts)
+    fallback: Mark user as pending-sync, alert admin
+
+  - scenario: Event consumer fails
+    strategy: Consumer retries idempotently
+    fallback: Dead-letter queue with alert

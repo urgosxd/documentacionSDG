@@ -1,0 +1,134 @@
+# Permission Spec — Expediente Management
+# Define los permisos y RBAC para el subdominio
+
+permissions: ExpedientePermissions
+version: 1.0.0
+description: Permisos para gestión de expedientes
+
+roles:
+  - id: super-admin
+    name: Super Usuario
+    permissions:
+      - expedientes:read:all
+      - expedientes:write:all
+      - expedientes:state-change:all
+      - expedientes:cancel:all
+      - archivos:upload
+      - archivos:download:all
+      - proyectos:read
+      - historial:read
+
+  - id: jefe-oficina
+    name: Jefe de Oficina
+    permissions:
+      - expedientes:read:oficina
+      - expedientes:write:oficina
+      - expedientes:state-change:oficina
+      - expedientes:cancel:oficina
+      - archivos:upload
+      - archivos:download:oficina
+      - proyectos:read
+      - historial:read
+
+  - id: tecnico
+    name: Técnico / Administrativo
+    permissions:
+      - expedientes:read:oficina
+      - expedientes:write:oficina
+      - archivos:upload
+      - archivos:download:oficina
+      - proyectos:read
+      - historial:read
+
+  - id: residente
+    name: Residente
+    permissions:
+      - expedientes:read:oficina
+      - expedientes:write:oficina
+      - archivos:upload
+      - archivos:download:oficina
+      - proyectos:read
+      - historial:read
+
+  - id: inspector
+    name: Inspector
+    permissions:
+      - expedientes:read:oficina
+      - archivos:upload
+      - archivos:download:oficina
+      - proyectos:read
+      - historial:read
+
+permissionDefinitions:
+  - id: expedientes:read:all
+    description: Leer expedientes de todas las oficinas
+    scope: global
+
+  - id: expedientes:read:oficina
+    description: Leer expedientes de la propia oficina
+    scope: office
+
+  - id: expedientes:write:all
+    description: Crear/editar expedientes de todas las oficinas
+    scope: global
+
+  - id: expedientes:write:oficina
+    description: Crear/editar expedientes de la propia oficina
+    scope: office
+
+  - id: expedientes:state-change:all
+    description: Cambiar estado de expedientes de todas las oficinas
+    scope: global
+    requiresJustification: true
+
+  - id: expedientes:state-change:oficina
+    description: Cambiar estado de expedientes de la propia oficina
+    scope: office
+    requiresJustification: true
+
+  - id: expedientes:cancel:all
+    description: Cancelar expedientes de todas las oficinas
+    scope: global
+    requiresJustification: true
+
+  - id: expedientes:cancel:oficina
+    description: Cancelar expedientes de la propia oficina
+    scope: office
+    requiresJustification: true
+
+  - id: archivos:upload
+    description: Subir archivos a expedientes
+    scope: office
+
+  - id: archivos:download:all
+    description: Descargar archivos de todas las oficinas
+    scope: global
+
+  - id: archivos:download:oficina
+    description: Descargar archivos de la propia oficina
+    scope: office
+
+  - id: proyectos:read
+    description: Leer proyectos
+    scope: global
+
+  - id: historial:read
+    description: Leer historial de expedientes
+    scope: office
+
+rules:
+  - id: PERM-01
+    description: Separación por oficina
+    rule: Roles operativos solo acceden a expedientes de su oficina
+
+  - id: PERM-02
+    description: Cambio de estado restringido
+    rule: Solo Super Usuario y Jefe de Oficina pueden cambiar estados
+
+  - id: PERM-03
+    description: Justificación obligatoria
+    rule: Cambios de estado requieren justificación
+
+  - id: PERM-04
+    description: Acceso global excepcional
+    rule: Super Usuario tiene acceso global, roles operativos limitados a oficina

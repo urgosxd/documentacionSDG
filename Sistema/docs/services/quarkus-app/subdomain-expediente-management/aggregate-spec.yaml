@@ -1,0 +1,257 @@
+# Aggregate Spec — Expediente
+# Define la estructura y reglas del aggregate root Expediente
+
+aggregate: Expediente
+version: 1.0.0
+description: Aggregate root para gestión de expedientes
+rootEntity: Expediente
+
+entities:
+  - name: Expediente
+    type: aggregate-root
+    description: Unidad core de negocio con metadata, estados y archivos adjuntos
+    identity:
+      field: id
+      type: UUID
+      generated: true
+    fields:
+      - name: id
+        type: UUID
+        required: true
+      - name: proyectoId
+        type: UUID
+        required: true
+        description: ID del proyecto de inversión pública asociado
+      - name: tipo
+        type: string
+        required: true
+        enum:
+          - expediente-tecnico
+          - expediente-ejecucion
+          - expediente-adicionales
+          - expediente-liquidacion
+      - name: estado
+        type: string
+        required: true
+        enum:
+          - borrador
+          - enviado
+          - observado
+          - subsanado
+          - aprobado
+          - archivado
+      - name: oficinaId
+        type: UUID
+        required: true
+        description: Oficina responsable del expediente
+      - name: responsableId
+        type: UUID
+        required: true
+        description: Usuario responsable del expediente
+      - name: asunto
+        type: string
+        required: true
+        maxLength: 500
+      - name: metadata
+        type: object
+        required: false
+        description: Metadata descriptiva completada por el usuario
+      - name: nomenclatura
+        type: string
+        required: true
+        generated: true
+        pattern: "{tipo}-{codigoProyecto}-{secuencial}"
+      - name: createdAt
+        type: datetime
+        required: true
+        generated: true
+      - name: updatedAt
+        type: datetime
+        required: true
+      - name: version
+        type: integer
+        required: true
+        default: 1
+
+  - name: Archivo
+    type: child-entity
+    description: Documento adjunto al expediente (sin lógica de negocio propia)
+    identity:
+      field: id
+      type: UUID
+      generated: true
+    fields:
+      - name: id
+        type: UUID
+        required: true
+      - name: expedienteId
+        type: UUID
+        required: true
+        description: Reference to parent Expediente
+      - name: nombreOriginal
+        type: string
+        required: true
+        maxLength: 255
+      - name: hash
+        type: string
+        required: true
+        description: SHA-256 del contenido binario
+      - name: tamaño
+        type: integer
+        required: true
+        description: Tamaño en bytes
+        min: 0
+        max: 4294967296
+      - name: formato
+        type: string
+        required: true
+        enum:
+          - PDF
+          - DOCX
+      - name: fechaSubida
+        type: datetime
+        required: true
+      - name: usuarioSubidorId
+        type: UUID
+        required: true
+      - name: storageRef
+        type: string
+        required: true
+        description: File ID (fid) de SeaweedFS
+
+  - name: HistorialExpediente
+    type: child-entity
+    description: Trazabilidad de cambios del expediente
+    identity:
+      field: id
+      type: UUID
+      generated: true
+    fields:
+      - name: id
+        type: UUID
+        required: true
+      - name: expedienteId
+        type: UUID
+        required: true
+      - name: accion
+        type: string
+        required: true
+      - name: usuarioId
+        type: UUID
+        required: true
+      - name: timestamp
+        type: datetime
+        required: true
+      - name: detalle
+        type: string
+        required: false
+      - name: estadoAnterior
+        type: string
+        required: false
+      - name: estadoNuevo
+        type: string
+        required: false
+
+relationships:
+  - type: one-to-many
+    from: Expediente
+    to: Archivo
+    description: Un expediente tiene múltiples archivos adjuntos
+    cascadeDelete: false
+
+  - type: one-to-many
+    from: Expediente
+    to: HistorialExpediente
+    description: Un expediente tiene múltiples eventos de historial
+    cascadeDelete: false
+
+  - type: many-to-one
+    from: Expediente
+    to: Proyecto
+    description: Un expediente pertenece a un proyecto
+    cascadeDelete: false
+
+invariants:
+  - id: INV-EXP-01
+    description: Proyecto obligatorio
+    rule: Todo expediente debe tener un proyectoId válido
+
+  - id: INV-EXP-02
+    description: Archivo siempre asociado
+    rule: Todo archivo debe tener un expedienteId válido
+
+  - id: INV-EXP-03
+    description: Metadata a nivel expediente
+    rule: Los archivos no tienen metadata de negocio, solo metadata técnica
+
+  - id: INV-EXP-04
+    description: Estado heredado
+    rule: Los archivos heredan el estado del expediente, no tienen estado propio
+
+  - id: INV-EXP-05
+    description: Formato único
+    rule: Solo PDF y DOCX son admitidos
+
+  - id: INV-EXP-06
+    description: Tamaño máximo
+    rule: Archivos entre 0 bytes y 4 GB
+
+commands:
+  - name: CrearExpediente
+    description: Crea un nuevo expediente
+    fields:
+      - proyectoId
+      - tipo
+      - oficinaId
+      - responsableId
+      - asunto
+      - metadata
+
+  - name: AdjuntarArchivo
+    description: Adjunta un archivo al expediente
+    fields:
+      - expedienteId
+      - nombreOriginal
+      - archivoBinario
+      - metadata
+
+  - name: CambiarEstado
+    description: Cambia el estado del expediente según state machine
+    fields:
+      - expedienteId
+      - estadoNuevo
+      - justificacion (si required)
+
+  - name: CancelarExpediente
+    description: Cancela el expediente (vuelve a BORRADOR)
+    fields:
+      - expedienteId
+      - justificacion
+
+queries:
+  - name: ObtenerExpediente
+    description: Obtiene un expediente por ID con sus archivos
+    params:
+      - id: UUID
+
+  - name: ListarExpedientesPorOficina
+    description: Lista expedientes de una oficina con filtros
+    params:
+      - oficinaId: UUID
+      - estado: string (optional)
+      - tipo: string (optional)
+      - page: integer
+      - limit: integer
+
+  - name: BuscarExpedientesPorContenido
+    description: Busca expedientes por asunto/metadata
+    params:
+      - query: string
+      - oficinaId: UUID (optional)
+      - page: integer
+      - limit: integer
+
+  - name: ObtenerHistorial
+    description: Obtiene el historial de cambios de un expediente
+    params:
+      - expedienteId: UUID

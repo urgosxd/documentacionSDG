@@ -1,0 +1,123 @@
+# Aggregate Spec — Storage
+# Define los aggregates para almacenamiento físico
+
+aggregate: Storage
+version: 1.0.0
+description: Aggregate para almacenamiento físico de archivos en SeaweedFS
+rootEntity: Archivo
+
+entities:
+  - name: Archivo
+    type: aggregate-root
+    description: Archivo físico almacenado en SeaweedFS
+    identity:
+      field: fid
+      type: string
+      generated: true
+      description: File ID de SeaweedFS
+    fields:
+      - name: fid
+        type: string
+        required: true
+        description: SeaweedFS File ID
+      - name: expedienteId
+        type: UUID
+        required: true
+        description: Referencia al expediente padre
+      - name: nombreOriginal
+        type: string
+        required: true
+      - name: hash
+        type: string
+        required: true
+        description: SHA-256 del contenido
+      - name: tamaño
+        type: integer
+        required: true
+        min: 0
+        max: 4294967296
+      - name: formato
+        type: string
+        required: true
+        enum: [PDF, DOCX]
+      - name: mimetype
+        type: string
+        required: true
+      - name: fechaSubida
+        type: datetime
+        required: true
+      - name: storagePath
+        type: string
+        required: true
+        description: Path interno en SeaweedFS
+
+  - name: StorageReference
+    type: entity
+    description: Referencia lógica a un archivo almacenado
+    fields:
+      - name: refId
+        type: UUID
+        required: true
+      - name: fid
+        type: string
+        required: true
+      - name: expedienteId
+        type: UUID
+        required: true
+      - name: accessUrl
+        type: string
+        required: true
+      - name: expiresAt
+        type: datetime
+        required: false
+
+invariants:
+  - id: INV-ST-01
+    description: Almacenamiento externo
+    rule: SeaweedFS es el único sistema de almacenamiento físico
+
+  - id: INV-ST-02
+    description: Referencia por fid
+    rule: Todo archivo se identifica mediante fid único
+
+  - id: INV-ST-03
+    description: Sin metadatos de negocio
+    rule: Solo metadata técnica, los metadatos descriptivos van en expediente
+
+  - id: INV-ST-04
+    description: Inmutabilidad
+    rule: Una vez almacenado, el contenido no se modifica
+
+  - id: INV-ST-05
+    description: Límite de tamaño
+    rule: Archivos entre 0 bytes y 4 GB
+
+commands:
+  - name: AlmacenarArchivo
+    description: Almacena un archivo binario en SeaweedFS
+    fields:
+      - expedienteId
+      - archivoBinario
+      - nombreOriginal
+      - formato
+
+  - name: RecuperarArchivo
+    description: Recuperar archivo por fid
+    fields:
+      - fid
+
+  - name: EliminarArchivo
+    description: Elimina archivo por fid
+    fields:
+      - fid
+
+queries:
+  - name: ObtenerArchivo
+    description: Obtiene archivo por fid
+    params:
+      - fid: string
+
+  - name: ObtenerArchivosPorExpediente
+    description: Lista archivos de un expediente
+    params:
+      - expedienteId: UUID

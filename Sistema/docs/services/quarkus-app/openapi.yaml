@@ -1,0 +1,403 @@
+# OpenAPI Specification — Quarkus App (Core Backend)
+# Define la API REST para gestión de expedientes
+
+openapi: 3.0.3
+info:
+  title: SGD Expediente Management API
+  version: 1.0.0
+  description: API REST para gestión de expedientes del Sistema de Gestión de Expedientes
+
+servers:
+  - url: https://api.sgd.internal/v1
+    description: API server de producción
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: expedientes
+    description: Operaciones sobre expedientes
+  - name: archivos
+    description: Operaciones sobre archivos adjuntos
+  - name: proyectos
+    description: Operaciones sobre proyectos
+
+paths:
+  /expedientes:
+    get:
+      tags: [expedientes]
+      summary: Listar expedientes por oficina
+      parameters:
+        - name: oficinaId
+          in: query
+          schema:
+            type: string
+            format: uuid
+          required: true
+        - name: estado
+          in: query
+          schema:
+            type: string
+            enum: [borrador, enviado, observado, subsanado, aprobado, archivado]
+        - name: tipo
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        200:
+          description: Lista de expedientes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExpedienteList'
+        401:
+          description: No autorizado
+        403:
+          description: Forbidden - oficina no corresponde
+
+    post:
+      tags: [expedientes]
+      summary: Crear nuevo expediente
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExpedienteCreate'
+      responses:
+        201:
+          description: Expediente creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expediente'
+        400:
+          description: Bad request
+        401:
+          description: No autorizado
+
+  /expedientes/{id}:
+    get:
+      tags: [expedientes]
+      summary: Obtener expediente por ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: Expediente encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expediente'
+        404:
+          description: Expediente no encontrado
+
+  /expedientes/{id}/estado:
+    put:
+      tags: [expedientes]
+      summary: Cambiar estado de expediente
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EstadoChange'
+      responses:
+        200:
+          description: Estado cambiado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expediente'
+        400:
+          description: Transición no válida
+        403:
+          description: Rol no permitido
+
+  /expedientes/{id}/archivos:
+    post:
+      tags: [archivos]
+      summary: Adjuntar archivo a expediente
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ArchivoUpload'
+      responses:
+        201:
+          description: Archivo adjuntado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Archivo'
+        400:
+          description: Formato no permitido
+        413:
+          description: Contenido demasiado grande
+
+    get:
+      tags: [archivos]
+      summary: Listar archivos de un expediente
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: Lista de archivos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Archivo'
+
+  /expedientes/{id}/historial:
+    get:
+      tags: [expedientes]
+      summary: Obtener historial de cambios
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: Historial de cambios
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/HistorialItem'
+
+  /proyectos:
+    get:
+      tags: [proyectos]
+      summary: Listar proyectos
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        200:
+          description: Lista de proyectos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProyectoList'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Expediente:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        proyectoId:
+          type: string
+          format: uuid
+        tipo:
+          type: string
+          enum: [expediente-tecnico, expediente-ejecucion, expediente-adicionales, expediente-liquidacion]
+        estado:
+          type: string
+          enum: [borrador, enviado, observado, subsanado, aprobado, archivado]
+        oficinaId:
+          type: string
+          format: uuid
+        responsableId:
+          type: string
+          format: uuid
+        asunto:
+          type: string
+          maxLength: 500
+        metadata:
+          type: object
+        nomenclatura:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ExpedienteList:
+      type: object
+      properties:
+        expedientes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Expediente'
+        page:
+          type: integer
+        totalPages:
+          type: integer
+        total:
+          type: integer
+
+    ExpedienteCreate:
+      type: object
+      required: [proyectoId, tipo, oficinaId, responsableId, asunto]
+      properties:
+        proyectoId:
+          type: string
+          format: uuid
+        tipo:
+          type: string
+        oficinaId:
+          type: string
+          format: uuid
+        responsableId:
+          type: string
+          format: uuid
+        asunto:
+          type: string
+          maxLength: 500
+        metadata:
+          type: object
+
+    EstadoChange:
+      type: object
+      required: [estadoNuevo]
+      properties:
+        estadoNuevo:
+          type: string
+          enum: [borrador, enviado, observado, subsanado, aprobado, archivado]
+        justificacion:
+          type: string
+          description: Requerido para transiciones a OBSERVADO
+
+    Archivo:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        expedienteId:
+          type: string
+          format: uuid
+        nombreOriginal:
+          type: string
+        hash:
+          type: string
+        tamaño:
+          type: integer
+        formato:
+          type: string
+          enum: [PDF, DOCX]
+        fechaSubida:
+          type: string
+          format: date-time
+        storageRef:
+          type: string
+
+    ArchivoUpload:
+      type: object
+      required: [archivo]
+      properties:
+        archivo:
+          type: string
+          format: binary
+        metadata:
+          type: object
+
+    HistorialItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        accion:
+          type: string
+        usuarioId:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+        detalle:
+          type: string
+        estadoAnterior:
+          type: string
+        estadoNuevo:
+          type: string
+
+    Proyecto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        codigoSNIP:
+          type: string
+        nombre:
+          type: string
+        presupuesto:
+          type: number
+        entidad:
+          type: string
+        estado:
+          type: string
+
+    ProyectoList:
+      type: object
+      properties:
+        proyectos:
+          type: array
+          items:
+            $ref: '#/components/schemas/Proyecto'
+        page:
+          type: integer
+        totalPages:
+          type: integer

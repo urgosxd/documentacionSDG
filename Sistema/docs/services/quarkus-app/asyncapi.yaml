@@ -1,0 +1,398 @@
+# AsyncAPI Specification — Quarkus App (Core Backend)
+# Define los canales y mensajes para comunicación asíncrona vía RabbitMQ
+
+asyncapi: 2.6.0
+info:
+  title: Quarkus App - RabbitMQ Channels
+  version: 1.0.0
+  description: Especificación AsyncAPI para eventos asíncronos del core backend
+
+servers:
+  production:
+    url: rabbitmq://rabbitmq.sgd.internal:5672
+    protocol: rabbitmq
+    description: RabbitMQ server de producción
+    variables:
+      vhost:
+        default: /sgd
+        description: Virtual host para SGD
+
+  development:
+    url: rabbitmq://localhost:5672
+    protocol: rabbitmq
+    description: RabbitMQ local para desarrollo
+
+channels:
+  expediente.created:
+    description: Canal para eventos de creación de expedientes
+    publish:
+      operationId: publishExpedienteCreated
+      summary: Publica cuando se crea un nuevo expediente
+      message:
+        $ref: '#/components/messages/ExpedienteCreated'
+    subscribe:
+      operationId: subscribeExpedienteCreated
+      summary: Suscribe para recibir eventos de creación
+      message:
+        $ref: '#/components/messages/ExpedienteCreated'
+
+  expediente.state-changed:
+    description: Canal para eventos de cambio de estado de expedientes
+    publish:
+      operationId: publishExpedienteStateChanged
+      summary: Publica cuando cambia el estado de un expediente
+      message:
+        $ref: '#/components/messages/ExpedienteStateChanged'
+    subscribe:
+      operationId: subscribeExpedienteStateChanged
+      summary: Suscribe para recibir cambios de estado
+      message:
+        $ref: '#/components/messages/ExpedienteStateChanged'
+
+  expediente.cancelled:
+    description: Canal para eventos de cancelación de expedientes
+    publish:
+      operationId: publishExpedienteCancelled
+      summary: Publica cuando se cancela un expediente
+      message:
+        $ref: '#/components/messages/ExpedienteCancelled'
+
+  archivo.adjuntado:
+    description: Canal para eventos de archivos adjuntados
+    publish:
+      operationId: publishArchivoAdjuntado
+      summary: Publica cuando se adjunta un archivo
+      message:
+        $ref: '#/components/messages/ArchivoAdjuntado'
+
+  usuario.created:
+    description: Canal para eventos de creación de usuarios
+    publish:
+      operationId: publishUsuarioCreated
+      summary: Publica cuando se crea un usuario
+      message:
+        $ref: '#/components/messages/UsuarioCreated'
+
+  usuario.desactivado:
+    description: Canal para eventos de desactivación de usuarios
+    publish:
+      operationId: publishUsuarioDesactivado
+      summary: Publica cuando se desactiva un usuario
+      message:
+        $ref: '#/components/messages/UsuarioDesactivado'
+
+  rol.asignado:
+    description: Canal para eventos de asignación de roles
+    publish:
+      operationId: publishRolAsignado
+      summary: Publica cuando se asigna un rol
+      message:
+        $ref: '#/components/messages/RolAsignado'
+
+  session.created:
+    description: Canal para eventos de creación de sesión
+    publish:
+      operationId: publishSessionCreated
+      summary: Publica cuando se crea una sesión
+      message:
+        $ref: '#/components/messages/SessionCreated'
+
+  session.expired:
+    description: Canal para eventos de expiración de sesión
+    publish:
+      operationId: publishSessionExpired
+      summary: Publica cuando una sesión expira
+      message:
+        $ref: '#/components/messages/SessionExpired'
+
+  workflow.completed:
+    description: Canal para eventos de workflow completado (consumido)
+    subscribe:
+      operationId: subscribeWorkflowCompleted
+      summary: Suscribe para recibir workflows completados
+      message:
+        $ref: '#/components/messages/WorkflowCompleted'
+
+  keycloak.user-synced:
+    description: Canal para eventos de sincronización de Keycloak (consumido)
+    subscribe:
+      operationId: subscribeKeycloakUserSynced
+      summary: Suscribe para recibir sincronización de usuarios
+      message:
+        $ref: '#/components/messages/KeycloakUserSynced'
+
+components:
+  messages:
+    ExpedienteCreated:
+      name: ExpedienteCreated
+      title: Expediente Created Event
+      contentType: application/json
+      payload:
+        type: object
+        required: [id, proyectoId, tipo, estado, oficinaId, responsableId, createdAt]
+        properties:
+          id:
+            type: string
+            format: uuid
+          proyectoId:
+            type: string
+            format: uuid
+          tipo:
+            type: string
+            enum: [expediente-tecnico, expediente-ejecucion, expediente-adicionales, expediente-liquidacion]
+          estado:
+            type: string
+            enum: [borrador]
+          oficinaId:
+            type: string
+            format: uuid
+          responsableId:
+            type: string
+            format: uuid
+          asunto:
+            type: string
+          nomenclatura:
+            type: string
+          createdAt:
+            type: string
+            format: date-time
+
+    ExpedienteStateChanged:
+      name: ExpedienteStateChanged
+      title: Expediente State Changed Event
+      contentType: application/json
+      payload:
+        type: object
+        required: [expedienteId, estadoAnterior, estadoNuevo, usuarioId, timestamp]
+        properties:
+          expedienteId:
+            type: string
+            format: uuid
+          estadoAnterior:
+            type: string
+            enum: [borrador, enviado, observado, subsanado, aprobado, archivado]
+          estadoNuevo:
+            type: string
+            enum: [borrador, enviado, observado, subsanado, aprobado, archivado]
+          usuarioId:
+            type: string
+            format: uuid
+          timestamp:
+            type: string
+            format: date-time
+          justificacion:
+            type: string
+            nullable: true
+
+    ExpedienteCancelled:
+      name: ExpedienteCancelled
+      title: Expediente Cancelled Event
+      contentType: application/json
+      payload:
+        type: object
+        required: [expedienteId, usuarioId, timestamp, justificacion]
+        properties:
+          expedienteId:
+            type: string
+            format: uuid
+          usuarioId:
+            type: string
+            format: uuid
+          timestamp:
+            type: string
+            format: date-time
+          justificacion:
+            type: string
+
+    ArchivoAdjuntado:
+      name: ArchivoAdjuntado
+      title: Archivo Adjuntado Event
+      contentType: application/json
+      payload:
+        type: object
+        required: [id, expedienteId, nombreOriginal, hash, tamaño, formato, fechaSubida]
+        properties:
+          id:
+            type: string
+            format: uuid
+          expedienteId:
+            type: string
+            format: uuid
+          nombreOriginal:
+            type: string
+          hash:
+            type: string
+          tamaño:
+            type: integer
+          formato:
+            type: string
+            enum: [PDF, DOCX]
+          fechaSubida:
+            type: string
+            format: date-time
+          usuarioSubidorId:
+            type: string
+            format: uuid
+          storageRef:
+            type: string
+
+    UsuarioCreated:
+      name: UsuarioCreated
+      title: Usuario Created Event
+      contentType: application/json
+      payload:
+        type: object
+        required: [id, nombreCompleto, username, rol, oficinaId, activo]
+        properties:
+          id:
+            type: string
+            format: uuid
+          nombreCompleto:
+            type: string
+          username:
+            type: string
+          rol:
+            type: string
+            enum: [super-admin, jefe-oficina, inspector, residente, tecnico]
+          oficinaId:
+            type: string
+            format: uuid
+          activo:
+            type: boolean
+          createdAt:
+            type: string
+            format: date-time
+
+    UsuarioDesactivado:
+      name: UsuarioDesactivado
+      title: Usuario Desactivado Event
+      contentType: application/json
+      payload:
+        type: object
+        required: [usuarioId, username, justificacion, timestamp]
+        properties:
+          usuarioId:
+            type: string
+            format: uuid
+          username:
+            type: string
+          justificacion:
+            type: string
+          timestamp:
+            type: string
+            format: date-time
+
+    RolAsignado:
+      name: RolAsignado
+      title: Rol Asignado Event
+      contentType: application/json
+      payload:
+        type: object
+        required: [usuarioId, rolAnterior, rolNuevo, oficinaId, timestamp]
+        properties:
+          usuarioId:
+            type: string
+            format: uuid
+          rolAnterior:
+            type: string
+          rolNuevo:
+            type: string
+          oficinaId:
+            type: string
+            format: uuid
+          timestamp:
+            type: string
+            format: date-time
+
+    SessionCreated:
+      name: SessionCreated
+      title: Session Created Event
+      contentType: application/json
+      payload:
+        type: object
+        required: [sessionId, usuarioId, token, expiresAt]
+        properties:
+          sessionId:
+            type: string
+            format: uuid
+          usuarioId:
+            type: string
+            format: uuid
+          token:
+            type: string
+          expiresAt:
+            type: string
+            format: date-time
+
+    SessionExpired:
+      name: SessionExpired
+      title: Session Expired Event
+      contentType: application/json
+      payload:
+        type: object
+        required: [sessionId, usuarioId, lastActivity, timestamp]
+        properties:
+          sessionId:
+            type: string
+            format: uuid
+          usuarioId:
+            type: string
+            format: uuid
+          lastActivity:
+            type: string
+            format: date-time
+          timestamp:
+            type: string
+            format: date-time
+
+    WorkflowCompleted:
+      name: WorkflowCompleted
+      title: Workflow Completed Event
+      contentType: application/json
+      payload:
+        type: object
+        required: [workflowId, expedienteId, resultado, timestamp]
+        properties:
+          workflowId:
+            type: string
+            format: uuid
+          expedienteId:
+            type: string
+            format: uuid
+          resultado:
+            type: string
+            enum: [aprobado, rechazado]
+          timestamp:
+            type: string
+            format: date-time
+
+    KeycloakUserSynced:
+      name: KeycloakUserSynced
+      title: Keycloak User Synced Event
+      contentType: application/json
+      payload:
+        type: object
+        required: [usuarioId, keycloakId, synced, timestamp]
+        properties:
+          usuarioId:
+            type: string
+            format: uuid
+          keycloakId:
+            type: string
+            format: uuid
+          synced:
+            type: boolean
+          timestamp:
+            type: string
+            format: date-time
+
+  correlationIds:
+    ExpedienteCorrelation:
+      description: Correlation ID para eventos de expedientes
+      location: $message.header#/correlationId
+      expression: $message.header#/correlationId
+
+    UsuarioCorrelation:
+      description: Correlation ID para eventos de usuarios
+      location: $message.header#/correlationId
+      expression: $message.header#/correlationId

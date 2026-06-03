@@ -1,0 +1,101 @@
+# State Machine — Workflow Process Manager
+# Define los estados y transiciones de los procesos asíncronos
+
+stateMachine: WorkflowProcessStateMachine
+version: 1.0.0
+description: Máquina de estados para procesos asíncronos del workflow
+
+states:
+  - id: PENDING
+    description: Proceso pendiente de inicio
+    initial: true
+    allowedActions:
+      - start
+      - cancel
+
+  - id: RUNNING
+    description: Proceso en ejecución
+    allowedActions:
+      - complete
+      - fail
+      - pause
+
+  - id: PAUSED
+    description: Proceso暂停 por espera de evento externo
+    allowedActions:
+      - resume
+      - cancel
+
+  - id: COMPLETED
+    description: Proceso completado exitosamente
+    terminal: true
+    allowedActions: []
+
+  - id: FAILED
+    description: Proceso fallido
+    terminal: true
+    allowedActions:
+      - retry
+
+  - id: CANCELLED
+    description: Proceso cancelado
+    terminal: true
+    allowedActions: []
+
+transitions:
+  - from: PENDING
+    to: RUNNING
+    action: start
+    trigger: Evento de inicio recibido
+
+  - from: PENDING
+    to: CANCELLED
+    action: cancel
+    trigger: Cancelación solicitada
+
+  - from: RUNNING
+    to: COMPLETED
+    action: complete
+    trigger: Todas las etapas completadas
+
+  - from: RUNNING
+    to: FAILED
+    action: fail
+    trigger: Error no recuperable
+
+  - from: RUNNING
+    to: PAUSED
+    action: pause
+    trigger: Espera de evento externo
+
+  - from: PAUSED
+    to: RUNNING
+    action: resume
+    trigger: Evento externo recibido
+
+  - from: PAUSED
+    to: CANCELLED
+    action: cancel
+    trigger: Cancelación mientras está暂停
+
+  - from: FAILED
+    to: RUNNING
+    action: retry
+    trigger: Reintentos automáticos (max 3)
+
+rules:
+  - id: WF-01
+    description: Reintentos con backoff
+    constraint: Máximo 3 reintentos con backoff exponencial
+
+  - id: WF-02
+    description: Dead letter queue
+    constraint: Después de 3 reintentos fallidos, ir a dead letter queue
+
+  - id: WF-03
+    description: Idempotencia
+    constraint: Los procesos deben ser idempotentes
+
+  - id: WF-04
+    description: Sin bloqueo
+    constraint: Los procesos asíncronos nunca bloquean la respuesta al usuario

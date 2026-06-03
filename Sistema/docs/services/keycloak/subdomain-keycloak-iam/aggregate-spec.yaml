@@ -1,0 +1,149 @@
+# Aggregate Spec — Keycloak IAM
+# Define los aggregates para identidad y acceso
+
+aggregate: KeycloakIAM
+version: 1.0.0
+description: Aggregate para gestión de identidad en Keycloak
+rootEntity: UsuarioAuth
+
+entities:
+  - name: UsuarioAuth
+    type: aggregate-root
+    description: Usuario autenticado en Keycloak
+    identity:
+      field: keycloakId
+      type: UUID
+      generated: true
+    fields:
+      - name: keycloakId
+        type: UUID
+        required: true
+      - name: username
+        type: string
+        required: true
+        unique: true
+      - name: email
+        type: string
+        required: true
+        format: email
+      - name: roles
+        type: array
+        required: true
+        items:
+          type: string
+      - name: activo
+        type: boolean
+        required: true
+      - name: lastLogin
+        type: datetime
+        required: false
+
+  - name: Rol
+    type: entity
+    description: Rol RBAC definido en Keycloak
+    fields:
+      - name: rolId
+        type: UUID
+        required: true
+      - name: nombre
+        type: string
+        required: true
+        enum: [super-admin, jefe-oficina, inspector, residente, tecnico]
+      - name: permisos
+        type: array
+        required: true
+
+  - name: Token
+    type: entity
+    description: JWT token emitido por Keycloak
+    fields:
+      - name: tokenId
+        type: string
+        required: true
+      - name: accessToken
+        type: string
+        required: true
+      - name: refreshToken
+        type: string
+        required: true
+      - name: expiresAt
+        type: datetime
+        required: true
+      - name: claims
+        type: object
+        required: true
+
+  - name: Session
+    type: entity
+    description: Sesión activa en Keycloak
+    fields:
+      - name: sessionId
+        type: UUID
+        required: true
+      - name: usuarioId
+        type: UUID
+        required: true
+      - name: startTime
+        type: datetime
+        required: true
+      - name: lastAccess
+        type: datetime
+        required: true
+      - name: inactiveTimeout
+        type: integer
+        required: true
+        default: 300
+
+invariants:
+  - id: INV-KC-01
+    description: Único proveedor
+    rule: Keycloak es el único proveedor de identidad
+
+  - id: INV-KC-02
+    description: Token JWT
+    rule: Tokens emitidos deben ser JWT firmados con RS256
+
+  - id: INV-KC-03
+    description: Política de contraseñas
+    rule: Mínimo 8 caracteres, 1 mayúscula, 1 número, 1 carácter especial
+
+  - id: INV-KC-04
+    description: Sesión simultánea
+    rule: Máximo 1 sesión activa por usuario
+
+commands:
+  - name: AutenticarUsuario
+    description: Autenticar usuario con credenciales
+    fields:
+      - username
+      - password
+
+  - name: CrearUsuario
+    description: Crear usuario en Keycloak
+    fields:
+      - username
+      - email
+      - password
+      - rol
+
+  - name: AsignarRol
+    description: Asignar rol a usuario
+    fields:
+      - usuarioId
+      - rol
+
+  - name: CerrarSesion
+    description: Cerrar sesión de usuario
+    fields:
+      - sessionId
+
+queries:
+  - name: ObtenerUsuario
+    description: Obtiene usuario por ID
+    params:
+      - keycloakId: UUID
+
+  - name: ValidarToken
+    description: Valida un token JWT
+    params:
+      - token: string

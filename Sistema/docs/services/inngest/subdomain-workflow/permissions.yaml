@@ -1,0 +1,108 @@
+# Permission Spec — Workflow
+# Define los permisos para orquestación de procesos
+
+permissions: WorkflowPermissions
+version: 1.0.0
+description: Permisos para workflow y procesos asíncronos
+
+roles:
+  - id: super-admin
+    name: Super Usuario
+    permissions:
+      - workflow:read:all
+      - workflow:execute:all
+      - workflow:retry:all
+      - workflow:cancel:all
+      - proceso:approve
+      - proceso:reject
+      - alerta:faltantes
+
+  - id: jefe-oficina
+    name: Jefe de Oficina
+    permissions:
+      - workflow:read:oficina
+      - workflow:execute:oficina
+      - proceso:approve:oficina
+      - proceso:reject:oficina
+      - alerta:faltantes:oficina
+
+  - id: tecnico
+    name: Técnico
+    permissions:
+      - workflow:read:oficina
+      - workflow:execute:oficina
+
+  - id: residente
+    name: Residente
+    permissions:
+      - workflow:read:oficina
+      - workflow:execute:oficina
+
+  - id: inspector
+    name: Inspector
+    permissions:
+      - workflow:read:oficina
+
+permissionDefinitions:
+  - id: workflow:read:all
+    description: Leer workflows de todas las oficinas
+    scope: global
+
+  - id: workflow:read:oficina
+    description: Leer workflows de la propia oficina
+    scope: office
+
+  - id: workflow:execute:all
+    description: Ejecutar workflows de todas las oficinas
+    scope: global
+
+  - id: workflow:execute:oficina
+    description: Ejecutar workflows de la propia oficina
+    scope: office
+
+  - id: workflow:retry:all
+    description: Reintentar workflows fallidos
+    scope: global
+
+  - id: workflow:cancel:all
+    description: Cancelar workflows en ejecución
+    scope: global
+
+  - id: proceso:approve
+    description: Aprobar procesos documentales
+    scope: global
+
+  - id: proceso:approve:oficina
+    description: Aprobar procesos de la propia oficina
+    scope: office
+
+  - id: proceso:reject
+    description: Rechazar procesos documentales
+    scope: global
+    requiresJustification: true
+
+  - id: proceso:reject:oficina
+    description: Rechazar procesos de la propia oficina
+    scope: office
+    requiresJustification: true
+
+  - id: alerta:faltantes
+    description: Alertar expedientes faltantes
+    scope: global
+
+  - id: alerta:faltantes:oficina
+    description: Alertar expedientes faltantes de la propia oficina
+    scope: office
+
+rules:
+  - id: PERM-WF-01
+    description: Aprobador válido
+    rule: Solo Jefe de Oficina o Super Usuario pueden aprobar
+
+  - id: PERM-WF-02
+    description: Rechazo con justificación
+    rule: Rechazo requiere justificación obligatoria
+
+  - id: PERM-WF-03
+    description: Sin auto-aprobación
+    rule: Usuario que creó expediente no puede aprobarlo

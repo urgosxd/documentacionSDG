@@ -1,0 +1,99 @@
+# Permission Spec — Users
+# Define los permisos para gestión de usuarios
+
+permissions: UsersPermissions
+version: 1.0.0
+description: Permisos para gestión de usuarios y oficinas
+
+roles:
+  - id: super-admin
+    name: Super Usuario
+    permissions:
+      - usuarios:create
+      - usuarios:edit
+      - usuarios:deactivate
+      - usuarios:read:all
+      - roles:assign
+      - oficinas:assign
+      - contraseñas:reset
+      - oficinas:create
+      - oficinas:edit
+
+  - id: jefe-oficina
+    name: Jefe de Oficina
+    permissions:
+      - usuarios:read:oficina
+      - oficinas:read:oficina
+
+  - id: tecnico
+    name: Técnico
+    permissions:
+      - usuarios:read:oficina
+
+  - id: residente
+    name: Residente
+    permissions:
+      - usuarios:read:oficina
+
+  - id: inspector
+    name: Inspector
+    permissions:
+      - usuarios:read:oficina
+
+permissionDefinitions:
+  - id: usuarios:create
+    description: Crear nuevos usuarios
+    scope: global
+
+  - id: usuarios:edit
+    description: Editar datos de usuarios
+    scope: global
+
+  - id: usuarios:deactivate
+    description: Desactivar usuarios (baja lógica)
+    scope: global
+
+  - id: usuarios:read:all
+    description: Leer todos los usuarios del sistema
+    scope: global
+
+  - id: usuarios:read:oficina
+    description: Leer usuarios de la propia oficina
+    scope: office
+
+  - id: roles:assign
+    description: Asignar roles a usuarios
+    scope: global
+
+  - id: oficinas:assign
+    description: Asignar oficinas a usuarios
+    scope: global
+
+  - id: oficinas:create
+    description: Crear nuevas oficinas
+    scope: global
+
+  - id: oficinas:edit
+    description: Editar oficinas existentes
+    scope: global
+
+  - id: oficinas:read:oficina
+    description: Leer datos de la propia oficina
+    scope: office
+
+  - id: contraseñas:reset
+    description: Restablecer contraseñas de usuarios
+    scope: global
+
+rules:
+  - id: PERM-USR-01
+    description: Admin centralizada
+    rule: Solo Super Usuario administra usuarios
+
+  - id: PERM-USR-02
+    description: Jefe por oficina
+    rule: Cada oficina debe tener un Jefe de Oficina
+
+  - id: PERM-USR-03
+    description: Rotación controlada
+    rule: Al cambiar rol/oficina, retirar asignación anterior primero

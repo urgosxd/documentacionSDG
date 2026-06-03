@@ -1,0 +1,297 @@
+# OpenAPI Specification — PayloadCMS (BFF/Facade)
+# Define la API REST para la capa de presentación
+
+openapi: 3.0.3
+info:
+  title: SGD Document Workspace API (BFF)
+  version: 1.0.0
+  description: API REST para la capa de presentación (Backend For Frontend)
+
+servers:
+  - url: https://workspace.sgd.internal/v1
+    description: BFF server de producción
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: workspace
+    description: Operaciones del workspace
+  - name: ui
+    description: Operaciones de UI
+
+paths:
+  /workspace:
+    get:
+      tags: [workspace]
+      summary: Obtener vista del workspace
+      responses:
+        200:
+          description: Vista del workspace
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceView'
+
+  /workspace/expedientes:
+    get:
+      tags: [workspace]
+      summary: Bandeja de expedientes para UI
+      parameters:
+        - name: oficinaId
+          in: query
+          schema:
+            type: string
+            format: uuid
+          required: true
+        - name: estado
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        200:
+          description: Bandeja de expedientes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExpedienteTray'
+
+  /workspace/expedientes/crear:
+    post:
+      tags: [workspace]
+      summary: Iniciar creación de expediente (UI)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExpedienteForm'
+      responses:
+        201:
+          description: Expediente creado en UI
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExpedienteView'
+
+  /workspace/expedientes/{id}:
+    get:
+      tags: [workspace]
+      summary: Detalle de expediente para UI
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: Detalle de expediente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExpedienteDetail'
+
+  /workspace/expedientes/{id}/archivos:
+    post:
+      tags: [workspace]
+      summary: Adjuntar archivo (UI drag & drop)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ArchivoUploadUI'
+      responses:
+        201:
+          description: Archivo adjuntado
+        400:
+          description: Formato no permitido
+
+  /workspace/dashboard:
+    get:
+      tags: [ui]
+      summary: Dashboard principal según rol
+      responses:
+        200:
+          description: Dashboard view
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardView'
+
+  /workspace/session/timeout:
+    get:
+      tags: [ui]
+      summary: Check timeout de sesión
+      responses:
+        200:
+          description: Estado de sesión
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionStatus'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    WorkspaceView:
+      type: object
+      properties:
+        viewId:
+          type: string
+          format: uuid
+        usuarioId:
+          type: string
+          format: uuid
+        rol:
+          type: string
+        oficinaId:
+          type: string
+          format: uuid
+        estadoUI:
+          type: string
+          enum: [authenticated, expediente-created, expediente-listed, expediente-detail]
+
+    ExpedienteTray:
+      type: object
+      properties:
+        expedientes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExpedienteView'
+        page:
+          type: integer
+        totalPages:
+          type: integer
+
+    ExpedienteView:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        nomenclatura:
+          type: string
+        asunto:
+          type: string
+        estado:
+          type: string
+        tipo:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    ExpedienteForm:
+      type: object
+      required: [tipo, asunto, proyectoId]
+      properties:
+        tipo:
+          type: string
+        asunto:
+          type: string
+        proyectoId:
+          type: string
+          format: uuid
+        metadata:
+          type: object
+
+    ExpedienteDetail:
+      type: object
+      properties:
+        expediente:
+          $ref: '#/components/schemas/ExpedienteView'
+        archivos:
+          type: array
+          items:
+            $ref: '#/components/schemas/ArchivoView'
+        historial:
+          type: array
+          items:
+            $ref: '#/components/schemas/HistorialItem'
+
+    ArchivoView:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        nombreOriginal:
+          type: string
+        hash:
+          type: string
+        tamaño:
+          type: integer
+        formato:
+          type: string
+        fechaSubida:
+          type: string
+          format: date-time
+
+    ArchivoUploadUI:
+      type: object
+      required: [archivo]
+      properties:
+        archivo:
+          type: string
+          format: binary
+
+    DashboardView:
+      type: object
+      properties:
+        rol:
+          type: string
+        widgets:
+          type: array
+          items:
+            type: object
+
+    SessionStatus:
+      type: object
+      properties:
+        activo:
+          type: boolean
+        timeRemaining:
+          type: integer
+          description: Seconds until timeout
+        warning:
+          type: boolean
+          description: True if 1 minute remaining
+
+    HistorialItem:
+      type: object
+      properties:
+        accion:
+          type: string
+        usuarioId:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+        detalle:
+          type: string

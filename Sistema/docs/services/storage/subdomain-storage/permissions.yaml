@@ -1,0 +1,84 @@
+# Permission Spec — Storage
+# Define los permisos para almacenamiento
+
+permissions: StoragePermissions
+version: 1.0.0
+description: Permisos para almacenamiento de archivos
+
+roles:
+  - id: super-admin
+    name: Super Usuario
+    permissions:
+      - storage:read:all
+      - storage:write:all
+      - storage:delete:all
+      - archivo:download:all
+
+  - id: jefe-oficina
+    name: Jefe de Oficina
+    permissions:
+      - storage:read:oficina
+      - storage:write:oficina
+      - archivo:download:oficina
+
+  - id: tecnico
+    name: Técnico
+    permissions:
+      - storage:read:oficina
+      - storage:write:oficina
+      - archivo:download:oficina
+
+  - id: residente
+    name: Residente
+    permissions:
+      - storage:read:oficina
+      - storage:write:oficina
+      - archivo:download:oficina
+
+  - id: inspector
+    name: Inspector
+    permissions:
+      - storage:read:oficina
+      - archivo:download:oficina
+
+permissionDefinitions:
+  - id: storage:read:all
+    description: Leer archivos de todas las oficinas
+    scope: global
+
+  - id: storage:read:oficina
+    description: Leer archivos de la propia oficina
+    scope: office
+
+  - id: storage:write:all
+    description: Subir archivos a expedientes de todas las oficinas
+    scope: global
+
+  - id: storage:write:oficina
+    description: Subir archivos a expedientes de la propia oficina
+    scope: office
+
+  - id: storage:delete:all
+    description: Eliminar archivos (solo Super Usuario)
+    scope: global
+
+  - id: archivo:download:all
+    description: Descargar archivos de todas las oficinas
+    scope: global
+
+  - id: archivo:download:oficina
+    description: Descargar archivos de la propia oficina
+    scope: office
+
+rules:
+  - id: PERM-ST-01
+    description: Acceso controlado
+    rule: Solo quarkus-app tiene acceso directo a SeaweedFS
+
+  - id: PERM-ST-02
+    description: Sin exposición pública
+    rule: SeaweedFS no se expone directamente a internet
+
+  - id: PERM-ST-03
+    description: Almacenamiento externo
+    rule: Archivos solo en SeaweedFS, no en filesystem local

@@ -13,6 +13,8 @@
 | BR-DW-02 | BFF obligatorio | El frontend nunca se comunica directamente con quarkus-app. Siempre pasa por la capa BFF. |
 | BR-DW-03 | Validación duplicada | Las validaciones de frontend son solo para experiencia de usuario. La validación real ocurre en quarkus-app. |
 | BR-DW-04 | Sin acceso a storage | payloadcms nunca accede directamente a SeaweedFS. Los archivos se suben/descargan a través de quarkus-app. |
+| BR-DW-05 | Sin máquina de estados | PayloadCMS NO maneja la máquina de estados de expedientes. Solo consulta/visualiza estados desde quarkus-app. |
+| BR-DW-06 | Estados UI solo draft/published | PayloadCMS solo maneja estados draft/published para contenido de páginas/forms del CMS. |
 
 ---
 

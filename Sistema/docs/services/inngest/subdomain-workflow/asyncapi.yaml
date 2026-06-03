@@ -1,0 +1,135 @@
+# AsyncAPI Specification — Workflow (RabbitMQ)
+# Define los canales y mensajes para comunicación asíncrona
+
+asyncapi: 2.6.0
+info:
+  title: Workflow Service - RabbitMQ Channels
+  version: 1.0.0
+  description: Especificación AsyncAPI para comunicación asíncrona vía RabbitMQ
+
+servers:
+  production:
+    url: rabbitmq://rabbitmq.sgd.internal:5672
+    protocol: rabbitmq
+    description: RabbitMQ server de producción
+
+channels:
+  expediente.created:
+    description: Canal para eventos de creación de expedientes
+    subscribe:
+      operationId: receiveExpedienteCreated
+      summary: Recibe eventos cuando se crea un expediente
+      message:
+        $ref: '#/components/messages/ExpedienteCreated'
+
+  workflow.completed:
+    description: Canal para eventos de workflow completado
+    publish:
+      operationId: publishWorkflowCompleted
+      summary: Publica cuando un workflow termina
+      message:
+        $ref: '#/components/messages/WorkflowCompleted'
+
+  workflow.failed:
+    description: Canal para eventos de workflow fallido
+    publish:
+      operationId: publishWorkflowFailed
+      summary: Publica cuando un workflow falla
+      message:
+        $ref: '#/components/messages/WorkflowFailed'
+
+  expediente.faltante.alert:
+    description: Canal para alertas de expedientes faltantes
+    publish:
+      operationId: publishExpedienteFaltante
+      summary: Publica alerta de expediente incompleto
+      message:
+        $ref: '#/components/messages/ExpedienteFaltanteAlert'
+
+components:
+  messages:
+    ExpedienteCreated:
+      name: ExpedienteCreated
+      title: Expediente Created Event
+      contentType: application/json
+      payload:
+        type: object
+        properties:
+          id:
+            type: string
+            format: uuid
+          proyectoId:
+            type: string
+            format: uuid
+          tipo:
+            type: string
+          estado:
+            type: string
+          oficinaId:
+            type: string
+            format: uuid
+          createdAt:
+            type: string
+            format: date-time
+
+    WorkflowCompleted:
+      name: WorkflowCompleted
+      title: Workflow Completed Event
+      contentType: application/json
+      payload:
+        type: object
+        properties:
+          workflowId:
+            type: string
+            format: uuid
+          expedienteId:
+            type: string
+            format: uuid
+          resultado:
+            type: string
+            enum: [aprobado, rechazado]
+          timestamp:
+            type: string
+            format: date-time
+
+    WorkflowFailed:
+      name: WorkflowFailed
+      title: Workflow Failed Event
+      contentType: application/json
+      payload:
+        type: object
+        properties:
+          workflowId:
+            type: string
+            format: uuid
+          expedienteId:
+            type: string
+            format: uuid
+          error:
+            type: string
+          retryCount:
+            type: integer
+          timestamp:
+            type: string
+            format: date-time
+
+    ExpedienteFaltanteAlert:
+      name: ExpedienteFaltanteAlert
+      title: Expediente Faltante Alert
+      contentType: application/json
+      payload:
+        type: object
+        properties:
+          expedienteId:
+            type: string
+            format: uuid
+          oficinaId:
+            type: string
+            format: uuid
+          archivosFaltantes:
+            type: array
+            items:
+              type: string
+          timestamp:
+            type: string
+            format: date-time

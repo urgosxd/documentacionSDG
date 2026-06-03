@@ -1,0 +1,94 @@
+# Aggregate Spec — Identity Wrapper
+# Define la estructura para la capa de identidad
+
+aggregate: IdentityWrapper
+version: 1.0.0
+description: Aggregate para encapsulación de identidad y autenticación
+rootEntity: Session
+
+entities:
+  - name: Session
+    type: aggregate-root
+    description: Sesión activa de usuario
+    identity:
+      field: sessionId
+      type: UUID
+      generated: true
+    fields:
+      - name: sessionId
+        type: UUID
+        required: true
+      - name: usuarioId
+        type: UUID
+        required: true
+      - name: token
+        type: string
+        required: true
+        description: JWT token
+      - name: refreshToken
+        type: string
+        required: true
+      - name: expiresAt
+        type: datetime
+        required: true
+      - name: lastActivity
+        type: datetime
+        required: true
+      - name: inactiveTimeout
+        type: integer
+        required: true
+        default: 300
+        description: 5 minutos en segundos
+
+  - name: TokenMapper
+    type: entity
+    description: Mapeo de claims de JWT a modelos de dominio
+    fields:
+      - name: claimName
+        type: string
+        required: true
+      - name: domainField
+        type: string
+        required: true
+      - name: transformer
+        type: string
+        required: false
+
+invariants:
+  - id: INV-IW-01
+    description: Token válido requerido
+    rule: Toda sesión debe tener un token JWT válido
+
+  - id: INV-IW-02
+    description: Timeout por inactividad
+    rule: Sesión expira tras 5 minutos sin actividad
+
+commands:
+  - name: ValidarToken
+    description: Valida un token JWT
+    fields:
+      - token: string
+
+  - name: CrearSession
+    description: Crea una nueva sesión
+    fields:
+      - usuarioId
+      - token
+      - refreshToken
+
+  - name: CerrarSession
+    description: Cierra una sesión
+    fields:
+      - sessionId
+
+queries:
+  - name: ObtenerSession
+    description: Obtiene sesión por ID
+    params:
+      - sessionId: UUID
+
+  - name: ValidarRol
+    description: Valida que un token tiene un rol específico
+    params:
+      - token: string
+      - rolRequired: string

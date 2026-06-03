@@ -1,0 +1,131 @@
+# Event Contract — Workflow
+# Define los eventos del workflow manager
+
+eventContract: WorkflowEventContract
+version: 1.0.0
+description: Contrato de eventos para orquestación de procesos
+
+publishedEvents:
+  - name: WorkflowStarted
+    description: Evento disparado cuando inicia un workflow
+    trigger: Workflow process iniciado
+    schema:
+      type: object
+      properties:
+        workflowId:
+          type: string
+          format: uuid
+        expedienteId:
+          type: string
+          format: uuid
+        tipo:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+    consumers:
+      - expediente-management (para actualizar estado)
+      - payloadcms/workspace (para mostrar progreso)
+
+  - name: WorkflowCompleted
+    description: Evento disparado cuando un workflow termina
+    trigger: Workflow completado exitosamente
+    schema:
+      type: object
+      properties:
+        workflowId:
+          type: string
+          format: uuid
+        expedienteId:
+          type: string
+          format: uuid
+        resultado:
+          type: string
+          enum: [aprobado, rechazado]
+        timestamp:
+          type: string
+          format: date-time
+    consumers:
+      - expediente-management (para cambiar estado a APROBADO)
+      - payloadcms/workspace (para actualizar UI)
+
+  - name: WorkflowFailed
+    description: Evento disparado cuando un workflow falla
+    trigger: Workflow fallido después de reintentos
+    schema:
+      type: object
+      properties:
+        workflowId:
+          type: string
+          format: uuid
+        expedienteId:
+          type: string
+          format: uuid
+        error:
+          type: string
+        retryCount:
+          type: integer
+        timestamp:
+          type: string
+          format: date-time
+    consumers:
+      - expediente-management (para mantener estado)
+      - admin-dashboard (para alertar fallo)
+
+  - name: ExpedienteFaltanteAlert
+    description: Alerta cuando un expediente está incompleto
+    trigger: Expediente no tiene archivos requeridos
+    schema:
+      type: object
+      properties:
+        expedienteId:
+          type: string
+          format: uuid
+        oficinaId:
+          type: string
+          format: uuid
+        archivosFaltantes:
+          type: array
+        timestamp:
+          type: string
+          format: date-time
+    consumers:
+      - payloadcms/workspace (para mostrar alerta)
+      - notification-service (para enviar notificación)
+
+consumedEvents:
+  - name: ExpedienteStateChanged
+    description: Evento consumido cuando cambia estado de expediente
+    source: expediente-management
+    action: Iniciar workflow correspondiente
+    schema:
+      type: object
+      properties:
+        expedienteId:
+          type: string
+          format: uuid
+        estadoAnterior:
+          type: string
+        estadoNuevo:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+integrationPatterns:
+  - pattern: Saga orchestration
+    description: Coordina múltiples servicios mediante eventos
+    example: ExpedienteCreated → workflow inicia → notifica → completa
+
+  - pattern: Event-driven retry
+    description: Reintentos automáticos con backoff
+    example: WorkflowFailed → retry (max 3) → dead letter
+
+errorHandling:
+  - scenario: Workflow execution fails
+    strategy: Retry with exponential backoff (max 3)
+    fallback: Dead letter queue + alert admin
+
+  - scenario: Event consumer unreachable
+    strategy: Retry delivery
+    fallback: Dead letter queue
