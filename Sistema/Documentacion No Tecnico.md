@@ -1,3 +1,8 @@
+## Context
+Esta documentacion es para publico no tecnico, sera usado para lo construccion de la documentacion general no tecnica
+
+# Data
+
 ## Objetivo del documento
 
 Este documento describe de forma general el Sistema de Gestión Documentaria (SGD), estableciendo su propósito, alcance, términos clave y los roles involucrados. Sirve como punto de partida para entender el sistema antes de entrar al detalle técnico.
@@ -43,8 +48,6 @@ Tener en cuenta que estas definiciones estan incluidas solamente para el sitema 
 En esta sección listamos los subdominios más importantes para nuestro Sistema SGD, en donde el cuadro grande llamado **Enterprise Document Management** representa nuestro dominio principal del negocio, mientras que los cuadros pequeños llamados **subdominios** representan nuestra lógica de dependencias y separación de responsabilidades dentro del sistema.
 
 ### SubDominios Principales
-
----
 
 ### Gestor de Documentos Core SubDomain
 
