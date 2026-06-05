@@ -10,7 +10,7 @@
 | # | Regla | Descripción |
 |---|-------|-------------|
 | BR-USR-01 | Usuario único | El nombre de usuario (username) debe ser único en el sistema. |
-| BR-USR-02 | Oficina obligatoria | Todo usuario debe tener una oficina asignada, excepto Super Usuario y Administrador. |
+| BR-USR-02 | Oficina obligatoria | Todo usuario debe tener una oficina asignada, excepto Super Usuario. |
 | BR-USR-03 | Baja lógica | La desactivación de un usuario es una baja lógica (isActivo=false). No se eliminan registros. |
 | BR-USR-04 | Datos mínimos | Crear un usuario requiere: nombre completo, username, contraseña, rol y oficina. |
 | BR-USR-05 | Email opcional en alta | El email es obligatorio si se requiere restablecimiento de contraseña. |

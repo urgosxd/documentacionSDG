@@ -1,4 +1,4 @@
-# Spec Standards - SGD
+# Spec Standards - SGE
 
 > **Versión:** 1.0.0  
 > **Estado:** Borrador

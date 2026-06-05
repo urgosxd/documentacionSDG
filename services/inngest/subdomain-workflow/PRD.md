@@ -8,7 +8,7 @@
 
 ## 1. Propósito
 
-Coordinar y administrar los flujos documentales y procesos asíncronos del SGD. Gestiona las transiciones de estado, aprobaciones, derivaciones, notificaciones y cualquier proceso que requiera orquestación temporal o asíncrona.
+Coordinar y administrar los flujos documentales y procesos asíncronos del SGE. Gestiona las transiciones de estado, aprobaciones, derivaciones, notificaciones y cualquier proceso que requiera orquestación temporal o asíncrona.
 
 ---
 

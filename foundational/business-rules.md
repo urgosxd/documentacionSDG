@@ -1,4 +1,4 @@
-# Reglas de Negocio — Sistema de Gestión Documentaria (SGD)
+# Reglas de Negocio — Sistema de Gestión de Expedientes (SGE)
 
 > **Versión:** 1.0.0  
 > **Ámbito:** Global del sistema — aplican a todos los servicios y subdominios  
@@ -9,13 +9,13 @@
 
 | # | Regla | Descripción |
 |---|-------|-------------|
-| BR-SYS-01 | Asignación de oficina | Todo usuario debe tener una oficina asignada, excepto Super Usuario y Administrador global. |
+| BR-SYS-01 | Asignación de oficina | Todo usuario debe tener una oficina asignada, excepto Super Usuario. |
 | BR-SYS-02 | Jefe de Oficina obligatorio | Cada oficina debe tener al menos un usuario con rol Jefe de Oficina. |
 | BR-SYS-03 | Límite operativo | Los roles operativos (Técnico, Residente, Inspector) solo acceden a expedientes de su oficina. |
 | BR-SYS-04 | Sin permisos individuales | Los usuarios no reciben permisos fuera de su rol. |
 | BR-SYS-05 | Admin centralizada | Solo el Super Usuario administra cuentas, roles y oficinas. |
 | BR-SYS-06 | Cambio de estado restringido | Solo Super Usuario y Jefe de Oficina pueden cambiar estados y registrar justificaciones. |
-| BR-SYS-07 | Acceso global excepcional | El acceso a documentos de todas las oficinas es excepcional (solo Super Usuario y Administrador). |
+| BR-SYS-07 | Acceso global excepcional | El acceso a documentos de todas las oficinas es excepcional (solo Super Usuario). |
 | BR-SYS-08 | Rotación de roles | Cuando un usuario cambia de oficina o cargo, debe retirarse primero el rol anterior antes de asignar el nuevo. |
 | BR-SYS-09 | Trazabilidad de asignación | Toda asignación de rol debe registrarse con: usuario, oficina, responsable de la asignación y timestamp. |
 | BR-SYS-10 | Revisión periódica | Debe revisarse periódicamente que los usuarios sigan perteneciendo a su oficina y rol asignado. |
@@ -60,9 +60,9 @@
 | # | Acción | Roles Permitidos |
 |---|--------|------------------|
 | BR-SYS-17 | Ver expedientes propios | Todos los roles |
-| BR-SYS-18 | Ver expedientes de todas las oficinas | Super Usuario, Administrador |
+| BR-SYS-18 | Ver expedientes de todas las oficinas | Super Usuario |
 | BR-SYS-19 | Ver expedientes de la propia oficina | Jefe de Oficina y roles operativos |
-| BR-SYS-20 | Subir archivos PDF/DOCX a expedientes | Super Usuario, Administrador, Jefe de Oficina, roles operativos |
+| BR-SYS-20 | Subir archivos PDF/DOCX a expedientes | Super Usuario, Jefe de Oficina, roles operativos |
 | BR-SYS-21 | Cambiar estado de expediente | Super Usuario, Jefe de Oficina |
 | BR-SYS-22 | Registrar justificación | Super Usuario, Jefe de Oficina |
 | BR-SYS-23 | Alertar expedientes faltantes | Super Usuario, Jefe de Oficina, roles operativos |
@@ -91,11 +91,11 @@
 
 | # | Regla | Descripción |
 |---|-------|-------------|
-| BR-SYS-34 | Grupos de oficina | Las oficinas se organizan en 3 grupos según su composición de roles. |
-| BR-SYS-35 | Grupo 1 — UF, OEP, LQ | Roles: Jefe de Oficina + Técnico |
-| BR-SYS-36 | Grupo 2 — OAD, RES | Roles: Jefe de Oficina + Residente + Técnico/Administrativo |
-| BR-SYS-37 | Grupo 3 — INS | Roles: Jefe de Oficina + Inspector |
-| BR-SYS-38 | Nueva oficina | Agregar una nueva oficina no requiere cambios en el código del sistema. |
+| BR-SYS-35 | Grupos de oficina | Las oficinas se organizan en 3 grupos según su composición de roles. |
+| BR-SYS-36 | Grupo 1 — UF, OEP, LQ | Roles: Jefe de Oficina + Técnico |
+| BR-SYS-37 | Grupo 2 — OAD, RES | Roles: Jefe de Oficina + Residente + Técnico/Administrativo |
+| BR-SYS-38 | Grupo 3 — INS | Roles: Jefe de Oficina + Inspector |
+| BR-SYS-39 | Nueva oficina | Agregar una nueva oficina no requiere cambios en el código del sistema. |
 
 ---
 
@@ -103,10 +103,10 @@
 
 | # | Regla | Descripción |
 |---|-------|-------------|
-| BR-SYS-39 | Sesión por inactividad | La sesión se cierra automáticamente tras 5 minutos de inactividad. |
-| BR-SYS-40 | Contraseñas seguras | Las contraseñas se gestionan exclusivamente a través de Keycloak. El sistema no almacena contraseñas. |
-| BR-SYS-41 | Acceso por rol | Todo acceso a recursos debe validar el rol del usuario contra la acción solicitada. |
-| BR-SYS-42 | Separación de responsabilidades | Roles operativos no administran usuarios; Administrador no cambia estados ni registra justificaciones. |
+| BR-SYS-40 | Sesión por inactividad | La sesión se cierra automáticamente tras 5 minutos de inactividad. |
+| BR-SYS-41 | Contraseñas seguras | Las contraseñas se gestionan exclusivamente a través de Keycloak. El sistema no almacena contraseñas. |
+| BR-SYS-42 | Acceso por rol | Todo acceso a recursos debe validar el rol del usuario contra la acción solicitada. |
+| BR-SYS-43 | Separación de responsabilidades | Solo Super Usuario administra usuarios. Jefe de Oficina y Super Usuario cambian estados y registran justificaciones. |
 
 ---
 
@@ -114,8 +114,8 @@
 
 | # | Regla | Descripción |
 |---|-------|-------------|
-| BR-SYS-43 | Comunicación síncrona | payloadcms se comunica con quarkus-app vía REST/HTTP. |
-| BR-SYS-44 | Comunicación asíncrona | quarkus-app delega procesos asíncronos a inngest mediante eventos. |
-| BR-SYS-45 | Identidad centralizada | Todo servicio valida tokens JWT contra keycloak. quarkus-app wrappea la comunicación con keycloak. |
-| BR-SYS-46 | Almacenamiento desacoplado | quarkus-app sube/recupera archivos de SeaweedFS. payloadcms nunca accede a SeaweedFS directamente. |
-| BR-SYS-47 | Facade obligatorio | payloadcms no contiene lógica de negocio ni reglas de dominio. Toda operación crítica pasa por quarkus-app. |
+| BR-SYS-44 | Comunicación síncrona | payloadcms se comunica con quarkus-app vía REST/HTTP. |
+| BR-SYS-45 | Comunicación asíncrona | quarkus-app delega procesos asíncronos a inngest mediante eventos. |
+| BR-SYS-46 | Identidad centralizada | Todo servicio valida tokens JWT contra keycloak. quarkus-app wrappea la comunicación con keycloak. |
+| BR-SYS-47 | Almacenamiento desacoplado | quarkus-app sube/recupera archivos de SeaweedFS. payloadcms nunca accede a SeaweedFS directamente. |
+| BR-SYS-48 | Facade obligatorio | payloadcms no contiene lógica de negocio ni reglas de dominio. Toda operación crítica pasa por quarkus-app. |

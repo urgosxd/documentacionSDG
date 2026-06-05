@@ -8,7 +8,7 @@
 
 ## 1. Propósito
 
-Actuar como capa intermedia entre el SGD y el proveedor de identidad Keycloak, encapsulando toda la comunicación de autenticación y autorización. Evita el acoplamiento directo del core del sistema con servicios externos de IAM.
+Actuar como capa intermedia entre el SGE y el proveedor de identidad Keycloak, encapsulando toda la comunicación de autenticación y autorización. Evita el acoplamiento directo del core del sistema con servicios externos de IAM.
 
 ---
 

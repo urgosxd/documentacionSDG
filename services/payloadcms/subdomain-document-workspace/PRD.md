@@ -8,7 +8,7 @@
 
 ## 1. Propósito
 
-Proveer la capa de interacción visual donde los usuarios trabajan con los **expedientes** del SGD. Actúa como **Frontend** y **BFF (Backend For Frontend) / Facade**, orquestando la experiencia de usuario sin contener lógica de negocio del dominio.
+Proveer la capa de interacción visual donde los usuarios trabajan con los **expedientes** del SGE. Actúa como **Frontend** y **BFF (Backend For Frontend) / Facade**, orquestando la experiencia de usuario sin contener lógica de negocio del dominio.
 
 **Nota importante**: PayloadCMS NO maneja la máquina de estados de expedientes (borrador/enviado/observado/etc.). Solo maneja estados de contenido UI (draft/published para páginas/forms). La máquina de estados de expedientes está en quarkus-app/expediente-management y inngest/workflow.
 
@@ -27,7 +27,7 @@ PayloadCMS funciona como la plataforma donde los usuarios humanos:
 
 ## 2. Responsabilidades
 
-- Interfaz de usuario web para todas las operaciones del SGD.
+- Interfaz de usuario web para todas las operaciones del SGE.
 - BFF que orquesta llamadas entre frontend y quarkus-app.
 - Presentación de bandejas, formularios y dashboards.
 - Validación de formularios del lado del cliente.

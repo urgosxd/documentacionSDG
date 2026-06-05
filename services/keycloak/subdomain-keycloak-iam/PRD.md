@@ -8,7 +8,7 @@
 
 ## 1. Propósito
 
-Proveer el servicio de Identity and Access Management (IAM) para todo el SGD. Keycloak es el proveedor externo centralizado que gestiona autenticación, autorización y roles de todos los usuarios del sistema.
+Proveer el servicio de Identity and Access Management (IAM) para todo el SGE. Keycloak es el proveedor externo centralizado que gestiona autenticación, autorización y roles de todos los usuarios del sistema.
 
 ---
 
@@ -44,7 +44,7 @@ Proveer el servicio de Identity and Access Management (IAM) para todo el SGD. Ke
 | KC-03 | Validar token JWT | Alta |
 | KC-04 | Refrescar token expirado | Alta |
 | KC-05 | Gestionar sesiones de usuario (crear, listar, cerrar) | Alta |
-| KC-06 | Crear usuarios en Keycloak desde el realm del SGD | Media |
+| KC-06 | Crear usuarios en Keycloak desde el realm del SGE | Media |
 | KC-07 | Asignar roles a usuarios | Media |
 | KC-08 | Política de contraseñas (longitud mínima, complejidad) | Alta |
 | KC-09 | Cierre de sesión (logout) | Alta |

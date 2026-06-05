@@ -8,7 +8,7 @@
 
 ## 1. Propósito
 
-Administrar la estructura organizacional y los usuarios internos del SGD. Este subdominio gestiona oficinas, áreas, cargos y la asignación de usuarios a la jerarquía organizacional.
+Administrar la estructura organizacional y los usuarios internos del SGE. Este subdominio gestiona oficinas, áreas, cargos y la asignación de usuarios a la jerarquía organizacional.
 
 ---
 

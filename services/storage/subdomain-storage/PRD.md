@@ -8,7 +8,7 @@
 
 ## 1. Propósito
 
-Proveer almacenamiento físico confiable para los archivos digitales del SGD. Este subdominio se ejecuta como un servicio externo (SeaweedFS) orquestado mediante Docker Compose, sin lógica de negocio propia.
+Proveer almacenamiento físico confiable para los archivos digitales del SGE. Este subdominio se ejecuta como un servicio externo (SeaweedFS) orquestado mediante Docker Compose, sin lógica de negocio propia.
 
 ---
 

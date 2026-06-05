@@ -5,7 +5,7 @@ Esta documentacion es para publico no tecnico, sera usado para lo construccion d
 
 ## Objetivo del documento
 
-Este documento describe de forma general el Sistema de Gestión Documentaria (SGD), estableciendo su propósito, alcance, términos clave y los roles involucrados. Sirve como punto de partida para entender el sistema antes de entrar al detalle técnico.
+Este documento describe de forma general el Sistema de Gestión de Expedientes (SGE), estableciendo su propósito, alcance, términos clave y los roles involucrados. Sirve como punto de partida para entender el sistema antes de entrar al detalle técnico.
 
 ## Alcanze del sistema
 En esta parte para poder alcanzar un mvp (Minimo Producto Viable), esojemos todo lo que se SI Incluye el MVP y no que NO inluye el mvp
@@ -31,13 +31,13 @@ Tener en cuenta que estas definiciones estan incluidas solamente para el sitema 
 
 | Termino               | Significado                                                                                                                  |
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| SGD                   | Sistema de Gestión de Documentos                                                                                             |
+| SGE                   | Sistema de Gestión de Expedientes                                                                                            |
 | MVP                   | Minimo Producto Viable                                                                                                       |
 | PDF y DOCx            | Unicos formatos admitidos para el sistema                                                                                    |
 | Nomenclatura          | El sistema genera automáticamente la metadata solo el usuario solo llena los datos necesarios.                               |
 | Estados del Documento | Lo unicos estados en el sistema: **Borrador, Enviado, Observado, Subsanado, Aprobado, Archivado.**                           |
 | Dashboard             | Pantalla principal segun usuario                                                                                             |
-| Rol                   | Roles unicos y existentes en el Sistema: **Super Usuario, Jede deOficina, Inspector, Residente y Tecnico y/o Administrador** |
+| Rol                   | Roles únicos y existentes en el Sistema: **Super Usuario, Jefe de Oficina, Inspector, Residente, Técnico/Admin** |
 | keycloak              | Servico Externo que maneja roles y login                                                                                     |
 | SeaweedFS             | Servicio Externo que guarda archivos PDF y DOCx                                                                              |
 | Metadata              | Datos sobre los datos en los archivos PDF y DOCx                                                                             |
@@ -45,7 +45,7 @@ Tener en cuenta que estas definiciones estan incluidas solamente para el sitema 
 
 ## Disenio Orientado a dominios
 
-En esta sección listamos los subdominios más importantes para nuestro Sistema SGD, en donde el cuadro grande llamado **Enterprise Document Management** representa nuestro dominio principal del negocio, mientras que los cuadros pequeños llamados **subdominios** representan nuestra lógica de dependencias y separación de responsabilidades dentro del sistema.
+En esta sección listamos los subdominios más importantes para nuestro Sistema SGE, en donde el cuadro grande llamado **Enterprise Document Management** representa nuestro dominio principal del negocio, mientras que los cuadros pequeños llamados **subdominios** representan nuestra lógica de dependencias y separación de responsabilidades dentro del sistema.
 
 ### SubDominios Principales
 
@@ -70,7 +70,7 @@ En esta sección listamos los subdominios más importantes para nuestro Sistema 
 
 ### Usuarios Core SubDomain
 
-Este subdominio se encarga de administrar la estructura organizacional y los usuarios internos del sistema SGD.
+Este subdominio se encarga de administrar la estructura organizacional y los usuarios internos del sistema SGE.
 
 #### Responsabilidades
 
@@ -117,7 +117,7 @@ Este subdominio se encarga del almacenamiento físico de archivos y evidencias d
 
 ### Identity Access Supporting SubDomain (Keycloak)
 
-Este subdominio administra la autenticación y autorización de usuarios dentro del SGD.
+Este subdominio administra la autenticación y autorización de usuarios dentro del SGE.
 
 #### Responsabilidades
 
@@ -141,7 +141,7 @@ Este subdominio administra la autenticación y autorización de usuarios dentro 
 
 ### Wrapper Keycloak Generic SubDomain
 
-Este subdominio funciona como una capa intermedia entre el SGD y el proveedor de identidad Keycloak, evitando el acoplamiento directo con servicios externos.
+Este subdominio funciona como una capa intermedia entre el SGE y el proveedor de identidad Keycloak, evitando el acoplamiento directo con servicios externos.
 
 #### Responsabilidades
 
@@ -163,7 +163,7 @@ Este subdominio funciona como una capa intermedia entre el SGD y el proveedor de
 
 ### Workflow / Process Manager SubDomain
 
-Este subdominio coordina y administra los flujos documentales y procesos internos del SGD.
+Este subdominio coordina y administra los flujos documentales y procesos internos del SGE.
 
 #### Responsabilidades
 
@@ -226,10 +226,10 @@ Este subdominio coordina y administra los flujos documentales y procesos interno
 
 ## Roles y Permisos
 
-En roles y permisos usaremos la Asignacion  RBAC para nuestro Sistema SGD.
+En roles y permisos usaremos la Asignación RBAC para nuestro Sistema SGE.
 ## Oficinas y grupos de asignación
 
-Las oficinas del SGD se organizan en tres grupos de asignación según su estructura operativa.
+Las oficinas del SGE se organizan en tres grupos de asignación según su estructura operativa.
 
 ---
 
@@ -270,7 +270,7 @@ Este grupo aplica a oficinas donde el control principal se realiza mediante insp
 
 ### Super Usuario
 
-El Super Usuario tiene acceso global al SGD.
+El Super Usuario tiene acceso global al SGE.
 
 #### Permisos
 
@@ -287,29 +287,7 @@ El Super Usuario tiene acceso global al SGD.
 
 #### Restricciones
 
-* Ninguna restricción funcional dentro del SGD
-
----
-
-### Administrador
-
-El Administrador tiene acceso administrativo de consulta y registro.
-
-### Permisos
-
-* Ver documentos propios
-* Ver documentos de todas las oficinas
-* Subir documentos PDF
-
-### Restricciones
-
-* No cambiar estados
-* No registrar justificaciones
-* No alertar documentos faltantes
-* No crear usuarios
-* No asignar roles
-* No desactivar usuarios
-* No restablecer contraseñas
+* Ninguna restricción funcional dentro del SGE
 
 ---
 
@@ -423,9 +401,9 @@ El Inspector aplica en Inspección y/o Supervisión.
 | Acción                               | Roles Permitidos                                                 |
 | ------------------------------------ | ---------------------------------------------------------------- |
 | Ver documentos propios               | Todos los roles                                                  |
-| Ver documentos de todas las oficinas | Super Usuario, Administrador                                     |
+| Ver documentos de todas las oficinas | Super Usuario                                                    |
 | Ver documentos de la propia oficina  | Jefe de Oficina y roles operativos                               |
-| Subir documentos PDF                 | Super Usuario, Administrador, Jefe de Oficina y roles operativos |
+| Subir documentos PDF                 | Super Usuario, Jefe de Oficina y roles operativos                |
 | Cambiar estado de documento          | Super Usuario, Jefe de Oficina                                   |
 | Registrar justificación              | Super Usuario, Jefe de Oficina                                   |
 | Alertar documentos faltantes         | Super Usuario, Jefe de Oficina y roles operativos                |
@@ -438,7 +416,7 @@ El Inspector aplica en Inspección y/o Supervisión.
 
 ### Reglas de Asignación RBAC
 
-1. Cada usuario debe tener una oficina asignada, excepto Super Usuario y Administrador global.
+1. Cada usuario debe tener una oficina asignada, excepto Super Usuario.
 2. El rol Jefe de Oficina debe existir por oficina.
 3. Los roles operativos deben limitarse a su oficina o expedientes asignados.
 4. Los usuarios no deben recibir permisos individuales fuera de su rol.
@@ -511,7 +489,7 @@ El Inspector aplica en Inspección y/o Supervisión.
 
 * Separar permisos globales, permisos de oficina y permisos operativos.
 * Evitar que roles operativos administren usuarios.
-* Evitar que el Administrador cambie estados o registre justificaciones.
+* Evitar que roles operativos cambien estados o registren justificaciones.
 * Registrar toda asignación de rol con usuario, oficina y responsable.
 * Revisar periódicamente que los usuarios sigan perteneciendo a su oficina y rol asignado.
 
@@ -520,7 +498,7 @@ El Inspector aplica en Inspección y/o Supervisión.
 ## Requisitos funcionales y No Funcionales
 ### Requisitos Funcionales
 
-Los requisitos funcionales describen las funcionalidades que debe realizar el Sistema de Gestión Documentaria (SGD) dentro del alcance del MVP.
+Los requisitos funcionales describen las funcionalidades que debe realizar el Sistema de Gestión de Expedientes (SGE) dentro del alcance del MVP.
 
 | ID    | Módulo                     | Descripción                                                                                                                       | Prioridad |
 | ----- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | --------- |
@@ -530,7 +508,7 @@ Los requisitos funcionales describen las funcionalidades que debe realizar el Si
 | RF-04 | Autenticación y Roles      | El sistema cerrará la sesión automáticamente tras un periodo de inactividad de 5 minutos.                                         | Alta      |
 | RF-05 | Administración de Usuarios | Solamente el Super Usuario podrá crear, editar y desactivar cuentas de usuario.                                                   | Alta      |
 | RF-06 | Administración de Usuarios | Al crear un usuario se registrará: nombre completo, nombre de usuario, contraseña, rol y oficina asignada.                        | Alta      |
-| RF-07 | Administración de Usuarios | El Administrador podrá restablecer la contraseña de cualquier usuario mediante correo electrónico.                                | Media     |
+| RF-07 | Administración de Usuarios | El Super Usuario podrá restablecer la contraseña de cualquier usuario mediante correo electrónico.                                | Media     |
 | RF-08 | Administración de Usuarios | El listado de usuarios contará con un buscador y controles de paginación.                                                         | Baja      |
 | RF-09 | Carga de Documentos        | Los usuarios podrán subir documentos solamente en formato PDF y DOCX para el MVP.                                                 | Alta      |
 | RF-10 | Carga de Documentos        | Al subir un documento se presentará un formulario y el sistema generará automáticamente la metadata.                              | Alta      |

@@ -8,7 +8,7 @@
 
 ## 1. Propósito
 
-Gestionar el ciclo de vida completo de los documentos digitales dentro del SGD, desde su creación hasta su archivado. Es el subdominio **core** del sistema: contiene la lógica de negocio principal.
+Gestionar el ciclo de vida completo de los documentos digitales dentro del SGE, desde su creación hasta su archivado. Es el subdominio **core** del sistema: contiene la lógica de negocio principal.
 
 ---
 

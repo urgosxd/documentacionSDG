@@ -45,5 +45,5 @@
 | # | Regla | Descripción |
 |---|-------|-------------|
 | BR-KC-15 | Comunicación exclusiva | Keycloak solo se comunica con Identity Wrapper de quarkus-app. Ningún otro servicio habla directamente con Keycloak. |
-| BR-KC-16 | Realm dedicado | El SGD utiliza un realm específico (no el realm master). |
-| BR-KC-17 | Client ID fijo | La aplicación SGD se registra como un cliente confidencial en Keycloak con Client ID `sgd-app`. |
+| BR-KC-16 | Realm dedicado | El SGE utiliza un realm específico (no el realm master). |
+| BR-KC-17 | Client ID fijo | La aplicación SGE se registra como un cliente confidencial en Keycloak con Client ID `sgd-app`. |
